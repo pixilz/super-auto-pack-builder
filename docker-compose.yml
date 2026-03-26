@@ -1,5 +1,7 @@
 services:
   app:
     build: .
+    image: super-auto-pack-builder
+    user: "${DOCKER_UID}:${DOCKER_GID}"
     volumes:
       - .:/app
