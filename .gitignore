@@ -1,3 +1,5 @@
 .idea
 *.un~
 *~
+node_modules
+.pnpm-store
