@@ -19,5 +19,9 @@
 
 ## Blocking Decisions
 
-- Package manager (npm / pnpm / yarn / Bun) — needed before any installs
-- Node version / runtime — needed before any installs
+None.
+
+## Environment Notes
+
+- All commands (pnpm, linters, etc.) run inside the container: `docker compose run app <cmd>`
+- Do NOT run pnpm or Node directly on the host machine
