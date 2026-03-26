@@ -71,6 +71,41 @@ Docker also has "named volumes" — storage Docker manages internally, not direc
 
 A container with no long-running process exits immediately with code 0. That's a clean exit — not an error. It just means "I started, did nothing, finished successfully." Once you add a server process the container stays running.
 
+### File Ownership and User Permissions
+
+By default Docker runs as root. Any files the container creates on a bind-mounted volume are owned by root on the host — meaning your host user can't edit them without `sudo`.
+
+The fix: pass your host user's UID and GID into the container and tell Docker to run as that user.
+
+In `~/.bashrc`:
+```bash
+export DOCKER_UID=$(id -u)
+export DOCKER_GID=$(id -g)
+```
+
+In `docker-compose.yml`:
+```yaml
+user: "${DOCKER_UID}:${DOCKER_GID}"
+```
+
+`id -u` and `id -g` return your numeric user and group IDs. Linux tracks file ownership by these numbers — names like "zoe" are just labels on top. By running the container as your UID/GID, any files it creates are owned by you on the host.
+
+Note: `UID` is a bash readonly variable and isn't reliably exported to child processes — don't use it directly. Use `DOCKER_UID` instead.
+
+### Corepack Cache Location
+
+Corepack stores downloaded package manager binaries in the home directory of whoever runs it. If `corepack prepare` runs as root during `docker build`, the cache lands in `/root/.cache`. When you run the container as your own user, corepack can't find the cache and tries to download again.
+
+Fix: set `COREPACK_HOME` to a location all users can read before running `corepack prepare` in the Dockerfile:
+
+```dockerfile
+ENV COREPACK_HOME=/usr/local/share/corepack
+RUN corepack enable
+RUN corepack prepare pnpm@9.15.9 --activate
+```
+
+`/usr/local/share` is the standard Linux location for shared data installed locally — readable by all users, not managed by the OS package manager.
+
 ## Why It Matters
 
 Docker is standard in professional development. Any team running microservices, any CI/CD pipeline, any cloud deployment uses containers. Understanding how images are built, how volumes work, and how docker-compose ties it together is foundational DevOps knowledge.
