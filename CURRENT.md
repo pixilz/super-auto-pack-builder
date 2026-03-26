@@ -7,7 +7,7 @@
 **Dev Phase 0 — Docker**
 - Phase doc: `docs/phases/dev-phase-0-docker.md`
 - Milestone: #13
-- Open issues: none yet — run /start-phase dev-phase-0-docker
+- Open issues: #11, #12, #13
 
 ## Blocked
 

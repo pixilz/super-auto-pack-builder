@@ -25,8 +25,11 @@ This also sets the pattern for all future tooling: if it's part of the project, 
 
 ## Deliverables
 
-- [ ] Dockerfile that containerises the project
-- [ ] All subsequent tooling (linters, decompiler, etc.) runs inside the container
+- [ ] Define container structure and working directory (#11)
+- [ ] Decide how host filesystem is exposed to the container (#12)
+- [ ] Verify container builds and runs (#13)
+
+Note: runtime (Node/Bun/etc.) and package manager are decided in Setup Phase 3 and folded back into the Dockerfile as part of that phase.
 
 ## Open Questions
 
