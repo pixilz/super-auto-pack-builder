@@ -18,4 +18,7 @@ Steps:
    Display the full proposed list and ask the user to confirm, remove, or add items before proceeding.
 6. Once the user confirms the list, create each issue via the GitHub MCP (`owner: pixilz`, `repo: super-auto-pack-builder`) assigned to the milestone number from step 4.
 7. Report the created issue numbers and titles.
-8. Remind the user to add the issues to the project board ("Super Auto Pack Builder") since the board cannot be updated automatically.
+8. Update `CURRENT.md`:
+   - Set the active phase name, phase doc path, milestone number, and open issue numbers
+   - Move the previous active phase (if any) into the Recently Completed table
+9. Remind the user to add the issues to the project board ("Super Auto Pack Builder") since the board cannot be updated automatically.

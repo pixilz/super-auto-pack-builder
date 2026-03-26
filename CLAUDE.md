@@ -25,6 +25,7 @@ Read `project.md` for the full charter before asking questions about scope or pr
 - Regressions must be caught immediately. Evals are the mechanism.
 
 ### Context discipline
+- **At the start of every conversation, read `CURRENT.md`** to understand the active phase and open tasks.
 - Before starting a phase, read: `project.md`, the relevant `docs/phases/` doc (if it exists), and any relevant `docs/learning/` notes.
 - When working in a package, read its `CLAUDE.md` before making changes.
 - Prune context aggressively — keep it relevant to the current phase.
@@ -111,6 +112,7 @@ See `docs/templates/eval.md` for the full template and structure.
 | Command | What it does |
 |---------|-------------|
 | `/new-phase-doc` | Create a new phase doc from template |
+| `/start-phase` | Create GitHub issues for a phase and assign them to the milestone |
 | `/add-learning-note` | Create a new learning note from template |
 | `/mark-phase-complete` | Mark a phase doc as complete |
 | `/new-eval` | Create a new eval from template |

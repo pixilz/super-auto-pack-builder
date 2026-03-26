@@ -15,7 +15,10 @@ Steps:
    - Set `status` to `complete`
    - Set `completed` to today's date in YYYY-MM-DD format
 6. Confirm the update and display the updated frontmatter block.
-7. Run `git diff HEAD` to see what has changed. Draft a commit message based on the actual diff. Format:
+7. Update `CURRENT.md`:
+   - Move this phase from the Active Phase section into the Recently Completed table
+   - Clear the Active Phase and Blocking Decisions sections (leave them blank until the next phase starts)
+8. Run `git diff HEAD` to see what has changed. Draft a commit message based on the actual diff. Format:
    - Subject line: `docs: mark <phase-id> complete` (e.g. `docs: mark setup-phase-1 complete`)
    - Body: 2–4 bullet points summarising the meaningful changes visible in the diff.
    Display the commit message for the user to copy.
