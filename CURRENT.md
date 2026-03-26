@@ -4,7 +4,14 @@
 
 ## Active Phase
 
-**Setup Phase 3 — Linting**
+**Dev Phase 0 — Docker**
+- Phase doc: `docs/phases/dev-phase-0-docker.md`
+- Milestone: #13
+- Open issues: none yet — run /start-phase dev-phase-0-docker
+
+## Blocked
+
+**Setup Phase 3 — Linting** is blocked until Dev Phase 0 is complete.
 - Phase doc: `docs/phases/setup-phase-3-linting.md`
 - Milestone: #2
 - Open issues: #3, #4, #5, #6, #7, #8, #9, #10
@@ -18,5 +25,4 @@
 
 ## Blocking Decisions
 
-- Package manager (npm / pnpm / yarn) — needed before any installs
-- Node version — needed before any installs
+- What base Docker image to use

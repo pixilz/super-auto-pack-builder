@@ -38,6 +38,10 @@ Linting and formatting standards need to be in place before code is written — 
 - Which Node version? (LTS is the safe default)
 - DB linting (SQLFluff / Squawk) — revisit after database is chosen in Product Phase 5
 
+## Blocked By
+
+**Dev Phase 0 — Docker** must complete first. Claude runs inside yolobox (a Docker container inside WSL), so all tooling must be installed inside the project Docker image — not on WSL or Windows directly. Installing linting tools before the Dockerfile exists would mean doing it twice. Dev Phase 0 was moved up as a prerequisite for this phase.
+
 ## What I Learned
 
 _To be filled in._
