@@ -74,7 +74,29 @@ Skills live in `.claude/skills/<name>/SKILL.md`. The `description` field is crit
 
 ---
 
-### Layer 6: User Preferences and Feedback — Memory Files
+### Layer 6: Output Verification — Evals
+
+Context management ensures agents know *what* to do and *how* to do it. Evals answer a different question: **did the agent actually do it correctly?**
+
+AI output can look correct without being correct. A phase doc can be filled in, issues can be created, linting can appear to be configured — and still have subtle errors that only surface three phases later when something breaks in an unexpected way.
+
+Evals are structured, pass/fail checks written before a phase is marked complete. Each eval covers a specific concern and defines explicit criteria — not "does this look right?" but "does `npm run lint` exit 0 on a file with a known error?"
+
+Without evals:
+- Phases get marked complete based on vibes
+- Mistakes compound silently across phases
+- The cost of catching errors grows the later you find them
+
+With evals:
+- Every phase has a documented definition of done
+- Regressions are caught at phase boundaries, not three phases later
+- The eval doc becomes part of the permanent record — future agents can re-run it
+
+Evals live in `docs/evals/<phase-slug>-<concern>.md`. The `/new-eval` skill creates them from a template. A phase is not complete until its evals pass.
+
+---
+
+### Layer 7: User Preferences and Feedback — Memory Files
 
 Memory files (in `~/.claude/projects/.../memory/`) persist across conversations at the user level. They capture:
 - How the user likes to work
@@ -98,6 +120,7 @@ Every piece of context needs a durable home:
 | Past decisions | `docs/phases/` |
 | Open tasks | GitHub issues |
 | Procedures | `.claude/skills/` |
+| Output verification | `docs/evals/` |
 | User preferences | Memory files |
 
 If information only exists in chat history, it will be lost.
@@ -117,6 +140,7 @@ It's also a pattern that transfers to building AI products: any system where an 
 - Phase docs prevent decisions from being relitigated
 - GitHub issues make tasks discoverable without relying on human memory
 - Skills enforce consistent procedures across agents and sessions
+- Evals are the definition of done — a phase isn't complete until they pass
 - Memory files capture the collaboration layer that the codebase can't
 
 ## Resources
