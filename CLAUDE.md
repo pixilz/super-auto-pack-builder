@@ -13,6 +13,7 @@ Read `project.md` for the full charter before asking questions about scope or pr
 ## Core Principles for AI
 
 ### Build IN, not pile ON
+
 - Extend and integrate with what exists. Do not add layers or abstractions unless they solve a concrete, current problem.
 - Do not refactor surrounding code when fixing a bug.
 - Do not add error handling for scenarios that cannot happen.
@@ -20,11 +21,13 @@ Read `project.md` for the full charter before asking questions about scope or pr
 - When uncertain about scope, stop and ask — do not assume or expand.
 
 ### Evals and tests gate every phase
+
 - No phase is complete without passing evals.
 - Evals are structured, specific checks — not informal review. See eval standards below.
 - Regressions must be caught immediately. Evals are the mechanism.
 
 ### Context discipline
+
 - **At the start of every conversation, read `CURRENT.md`** to understand the active phase and open tasks.
 - Before starting a phase, read: `project.md`, the relevant `docs/phases/` doc (if it exists), and any relevant `docs/learning/` notes.
 - When working in a package, read its `CLAUDE.md` before making changes.
@@ -50,7 +53,7 @@ Read `project.md` for the full charter before asking questions about scope or pr
 
 Phase docs live in `docs/phases/` with a category prefix to avoid collisions:
 
-```
+```text
 docs/phases/setup-phase-<n>-<slug>.md
 docs/phases/product-phase-<n>-<slug>.md
 docs/phases/dev-phase-<n>-<slug>.md
@@ -58,6 +61,7 @@ docs/phases/lt-phase-<n>-<slug>.md
 ```
 
 Examples:
+
 - `docs/phases/setup-phase-1-docs-standards-ai-skills.md`
 - `docs/phases/product-phase-6-hosting-decision.md`
 - `docs/phases/dev-phase-2-api-layer.md`
@@ -70,11 +74,12 @@ Each phase doc has a frontmatter status block. See `docs/templates/phase-doc.md`
 
 Learning notes live in `docs/learning/` with descriptive slugs:
 
-```
+```text
 docs/learning/<topic-slug>.md
 ```
 
 Examples:
+
 - `docs/learning/drizzle-orm-basics.md`
 - `docs/learning/docker-multistage-builds.md`
 
@@ -87,17 +92,20 @@ See `docs/templates/learning-note.md`.
 Evals validate AI output. They are structured, testable checks — not informal review.
 
 **What an eval must cover:**
+
 - Specific, unambiguous claims about the output (not vague impressions)
 - Explicit pass/fail criteria for each check
 - Coverage of the main decisions or risks in that phase
 - Instructions for how to run it
 
 **When evals run:**
+
 - At the end of every phase, before marking it complete
 - When a significant implementation decision changes mid-phase
 
 **Eval naming:**
-```
+
+```text
 docs/evals/<phase-slug>-<concern>.md
 ```
 

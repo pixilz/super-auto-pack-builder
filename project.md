@@ -55,7 +55,8 @@ Phases are meant to be worked through in order. Each phase should produce a **Ph
 
 These phases produce decisions, not code.
 
-**Phase 1 — Data Source & Discovery**
+### Phase 1 — Data Source & Discovery
+
 - All data will be pulled directly from decompiled game files.
 - What decompiler do we use? What format does the output come in?
 - What game data do we want to expose to end users?
@@ -63,39 +64,47 @@ These phases produce decisions, not code.
 - Note: these two questions are iterative — what we want informs what we look for, and what we find informs what's possible. Treat this as one conversation, not two sequential steps.
 - Deliverables: data pipeline strategy doc + data schema spec doc.
 
-**Phase 2 — UX Design**
+### Phase 2 — UX Design
+
 - What does the user experience look like?
 - Mobile-first? Desktop? Both?
 - Deliverable: wireframes or written UX spec.
 
-**Phase 3 — Feature Scope**
+### Phase 3 — Feature Scope
+
 - What features does the site have at launch vs. later?
 - Enumerate and prioritize all features here, not just the pack builder.
 - Deliverable: feature list with priority tiers.
 
-**Phase 4 — Collaborative Pack Builder**
+### Phase 4 — Collaborative Pack Builder
+
 - Real-time, multi-user pack editing (webhook-lobby style).
 - Goal: usable on mobile, shared with others (e.g., building a pack with a partner).
 - Deliverable: feature spec for pack builder.
 
-**Phase 5 — Database Infrastructure**
+### Phase 5 — Database Infrastructure
+
 - What DB do we use? (Drizzle ORM is a candidate — evaluate during this phase)
 - Deliverable: DB decision doc.
 
-**Phase 6 — Hosting & Pricing**
+### Phase 6 — Hosting & Pricing
+
 - Where do we host? Likely Railway or Render for v1 — learning focus, not cost optimization.
 - What does the pricing model look like at various scales?
 - Deliverable: hosting decision doc.
 
-**Phase 7 — CI/CD Tooling**
+### Phase 7 — CI/CD Tooling
+
 - What pipeline tooling do we use?
 - Deliverable: CI/CD decision doc.
 
-**Phase 8 — Reverse Proxy**
+### Phase 8 — Reverse Proxy
+
 - What reverse proxy do we use?
 - Deliverable: reverse proxy decision doc.
 
-**Phase 9 — Versioning & Changelog**
+### Phase 9 — Versioning & Changelog
+
 - On new game version: detect, decompile, auto-generate changelog from diff of game data.
 - Changelog must be derived entirely from our decompiled results — not from external patch notes.
 - Deliverable: changelog strategy doc.
@@ -106,7 +115,8 @@ These phases produce decisions, not code.
 
 > Everything in this section happens before any other phase begins — including Product Phases. Work through these in order.
 
-**Setup 1 — Documentation Standards & AI Skills**
+### Setup 1 — Documentation Standards & AI Skills
+
 - Define templates for: phase docs, learning notes, evals.
 - Define naming conventions (see Phase Results Storage in Task & Project Management below).
 - Create `CLAUDE.md` at the repo root encoding project conventions, AI behavior expectations, and context guidelines. Add package-level `CLAUDE.md` files as packages are created.
@@ -118,17 +128,20 @@ These phases produce decisions, not code.
   - Creating a new eval from template
 - Deliverable: templates committed to `docs/templates/`, skills committed to `.claude/skills/`, root `CLAUDE.md` committed.
 
-**Setup 2 — Task Management**
+### Setup 2 — Task Management
+
 - Create GitHub Project board with Kanban columns.
 - Create Milestones for each phase.
 - Configure GitHub MCP server in Claude settings with a personal access token scoped to this repo.
 - Verify AI can open, update, and close issues through the MCP before proceeding.
 
-**Setup 3 — Linting**
+### Setup 3 — Linting
+
 - Decide on package manager (npm / pnpm / yarn) and Node version — lock both in before any other tooling is installed.
 - Set up linting for everything in the monorepo, enforced consistently across all packages.
 
-**Setup 4 — Testing Infrastructure**
+### Setup 4 — Testing Infrastructure
+
 - Unit and integration test framework in place before services are built.
 - E2E framework (Playwright or equivalent) configured.
 - Tests do not need to exist yet — the infrastructure and conventions do.
@@ -137,45 +150,54 @@ These phases produce decisions, not code.
 
 ### Development Phases — Building
 
-**Dev Phase 0 — Docker**
+### Dev Phase 0 — Docker
+
 - Dockerfile to containerize the entire project.
 - All tooling (decompiler, etc.) runs inside the container so nothing pollutes the host machine.
 
-**Dev Phase 1 — Game File Pipeline**
+### Dev Phase 1 — Game File Pipeline
+
 - Scripts to: download game files → decompile → extract target data → store.
 - Runs inside Docker.
 
-**Dev Phase 2 — API Layer (Backend)**
+### Dev Phase 2 — API Layer (Backend)
+
 - NodeJS API to serve pet/game data.
 - Setup Postman for manual testing.
 - Swagger (or equivalent) for API visualization.
 - Explore Postman API visualization as an alternative/addition.
 
-**Dev Phase 3 — Error Logging & Alerting**
+### Dev Phase 3 — Error Logging & Alerting
+
 - Full observability stack: human-readable AND AI-readable logs.
 - Real-time phone alerts for critical errors (this is the production-grade target).
 - Deliverable: logging system that works the way a real prod system would.
 
-**Dev Phase 4 — Frontend**
+### Dev Phase 4 — Frontend
+
 - Consumes the API, displays data to users.
 - This is where the user specializes — keep AI interaction tight and focused here; use this phase to practice AI collaboration patterns.
 - **Step 1 — Design System**: Build a fully accessible design system with CSS variables. Goal: fast to build, reusable, WCAG-compliant.
 - **Step 2 — Feature Implementation**: Build all scoped features using the design system.
 
-**Dev Phase 5 — CronJobs (Auto-Update)**
+### Dev Phase 5 — CronJobs (Auto-Update)
+
 - Implements the strategy defined in Product Phase 9 (Versioning & Changelog) — read that doc before starting.
 - Weekly (or on-demand) cron to re-fetch and decompile the game.
 - Version check first — skip decompile if version hasn't changed.
 
-**Dev Phase 6 — Redis**
+### Dev Phase 6 — Redis
+
 - Solves: API response caching, websocket pub/sub for the pack builder across server instances, async job queuing for decompile pipeline.
 - Deliverable: Redis integrated and actively solving at least one of the above problems.
 
-**Dev Phase 7 — WebSockets**
+### Dev Phase 7 — WebSockets
+
 - Monitor active users.
 - Push notifications when a new patch drops.
 
-**Dev Phase 8 — MCP Server**
+### Dev Phase 8 — MCP Server
+
 - Expose an MCP server so an AI can communicate with the site.
 - High resume value — document this phase thoroughly.
 
@@ -183,10 +205,12 @@ These phases produce decisions, not code.
 
 ### Long-Term / Stretch Phases
 
-**LT Phase 1 — VPS Migration**
+### LT Phase 1 — VPS Migration
+
 - Move off Railway/Render onto a VPS for deeper infrastructure learning.
 
-**LT Phase 2 — Terraform**
+### LT Phase 2 — Terraform
+
 - Learn and implement Terraform for infrastructure as code.
 
 ---
@@ -211,13 +235,14 @@ These phases produce decisions, not code.
 
 Phase docs live in `docs/phases/` and use a category prefix to avoid naming collisions:
 
-```
+```text
 docs/phases/product-phase-<n>-<slug>.md
 docs/phases/dev-phase-<n>-<slug>.md
 docs/phases/tooling-phase-<n>-<slug>.md
 ```
 
 Examples:
+
 - `docs/phases/product-phase-6-hosting-decision.md`
 - `docs/phases/dev-phase-2-api-layer.md`
 

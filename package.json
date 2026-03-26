@@ -4,18 +4,21 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22",
+    "node": ">=24",
     "pnpm": ">=9"
   },
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "lint:js": "eslint .",
     "lint:css": "stylelint '**/*.css'",
-    "lint:ts": "tsc --noEmit"
+    "lint:ts": "tsc --noEmit",
+    "lint:md": "markdownlint-cli2 '**/*.md'",
+    "lint:md:fix": "markdownlint-cli2 --fix '**/*.md'"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.1.0",
+    "markdownlint-cli2": "^0.22.0",
     "stylelint": "^17.6.0",
     "stylelint-config-standard": "^40.0.0",
     "typescript": "^6.0.2"

@@ -21,11 +21,13 @@ If your employer has an internal sandbox tool, even if they call it "open source
 ## Tools Evaluated
 
 ### 1. yolobox — Recommended
-**Repo:** https://github.com/finbarr/yolobox
+
+**Repo:** <https://github.com/finbarr/yolobox>
 
 A community-built Docker sandbox specifically for running AI agents in yolo mode. 532 stars, actively maintained.
 
 **What it includes out of the box:**
+
 - Node.js 22, Python 3, Bun, Go
 - pnpm, yarn, npm, uv (Python)
 - Claude Code, Gemini CLI, OpenAI Codex, GitHub Copilot, OpenCode — all pre-configured for full-auto mode
@@ -33,6 +35,7 @@ A community-built Docker sandbox specifically for running AI agents in yolo mode
 - UID/GID remapping to handle host permission mismatches
 
 **Gaps:**
+
 - No Volta
 - No persistent AI memories out of the box
 - Windows/WSL2 not explicitly documented (works via WSL terminal in practice)
@@ -41,18 +44,21 @@ A community-built Docker sandbox specifically for running AI agents in yolo mode
 ---
 
 ### 2. deva.sh
-**Repo:** https://github.com/thevibeworks/claude-code-yolo
+
+**Repo:** <https://github.com/thevibeworks/claude-code-yolo>
 
 Multi-agent focused. Auto-links auth homes for Claude/Codex/Gemini into a shared config dir. Thinner documentation, less community traction than yolobox.
 
 ---
 
 ### 3. Docker Sandboxes (Official)
-**Docs:** https://docs.docker.com/ai/sandboxes/
+
+**Docs:** <https://docs.docker.com/ai/sandboxes/>
 
 Docker Inc.'s own sandbox product. MicroVM-based (stronger isolation than plain containers). Supports Claude Code, Gemini, Codex, Copilot, and others.
 
 **Why it loses for this use case:**
+
 - Windows support is listed as experimental
 - Pre-installed tooling not documented
 - Less control/customization than yolobox
@@ -62,6 +68,7 @@ Docker Inc.'s own sandbox product. MicroVM-based (stronger isolation than plain 
 ## Security Analysis of yolobox
 
 ### install.sh (runs on your host machine) — Low risk
+
 - Downloads a pre-built binary from GitHub releases or builds from source with Go
 - No curl|bash patterns
 - No phone-home or host modifications beyond placing a binary in `~/.local/bin`
@@ -74,11 +81,12 @@ Docker Inc.'s own sandbox product. MicroVM-based (stronger isolation than plain 
 Both are common in the Docker ecosystem. Neither is a red flag given the context, but neither has cryptographic verification.
 
 ### Pre-built image concern
+
 By default yolobox pulls `ghcr.io/finbarr/yolobox:latest` — a pre-built image maintained by one person, with no image signing or provenance attestation. You cannot verify this image was built from the Dockerfile you reviewed.
 
 **Mitigation: build the image locally from the Dockerfile you've audited.** See setup steps below.
 
-### No telemetry or phone-home detected.
+### No telemetry or phone-home detected
 
 ---
 
@@ -208,11 +216,13 @@ source ~/.bashrc
 ### Step 7 — Wire up shared memory to each agent
 
 **Claude** — add to `~/.claude/CLAUDE.md`:
+
 ```markdown
 See /home/yolo/.ai-context/SHARED.md for shared context and preferences.
 ```
 
 **Gemini** — add to `~/.gemini/GEMINI.md`:
+
 ```markdown
 See /home/yolo/.ai-context/SHARED.md for shared context and preferences.
 ```

@@ -1,8 +1,8 @@
 This is a new project. I want to make a project.md or similar to really nail down what my goals are here.  
 My goal is for this project to be learning how to work with AI to both make my skills grow as well as t learn how to use AI better.  
-This project should be more about learning than it is just trying to get the project out the door, if I don't learn new information about the tools I am using as the project progresses then I have failed.    
+This project should be more about learning than it is just trying to get the project out the door, if I don't learn new information about the tools I am using as the project progresses then I have failed.
 
-Project summary: I want to write a series of scripts and tooling to decompile super auto pets and then create sort of like a quick wiki but more for data specific stuff. My goal is to fully host this because I need to learn how to do the fullstack + devops pipeline.    
+Project summary: I want to write a series of scripts and tooling to decompile super auto pets and then create sort of like a quick wiki but more for data specific stuff. My goal is to fully host this because I need to learn how to do the fullstack + devops pipeline.
 
 The product phase will be important to help analyze what we are actually developing. As we go through all the phases (in the future)we wil need to store the results of each phase so we can easily reference it later.  
 
@@ -10,7 +10,7 @@ Learning Notes:
     1: I would like to better learn typescript as part of this process  
     2: I have started learning Drizzle a little bit at work, idk if its what I want to use but maybe, should be part of the product phase discussions.  
     3: I know almost nothing about devops so a lot of this is going to be trial by fire and asking a lot of AI questions.  
-    4: I want to learn how to better utilize context management strategies for AI so that I can get better results in my professional endeavours.    
+    4: I want to learn how to better utilize context management strategies for AI so that I can get better results in my professional endeavours.
   
 Product Phases:  
     0: During this entire process everything the human learns needs to be properly documented so that I can reference it later and potentially update my resume.  
@@ -54,4 +54,3 @@ Long Term Phases:
 
 Note to my AI friend reading this:  
 For this task I am fully aware all of these are a bit intense and verbose for the final product, but the goal is to learn and grow as a human and professionally.  
-

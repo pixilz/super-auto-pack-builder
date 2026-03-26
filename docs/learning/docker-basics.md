@@ -38,7 +38,7 @@ Base images come in different variants. Alpine Linux is a minimal distribution â
 
 Running a container manually looks like:
 
-```
+```bash
 docker run -v .:/app -p 3000:3000 --env NODE_ENV=production my-image
 ```
 
@@ -78,12 +78,14 @@ By default Docker runs as root. Any files the container creates on a bind-mounte
 The fix: pass your host user's UID and GID into the container and tell Docker to run as that user.
 
 In `~/.bashrc`:
+
 ```bash
 export DOCKER_UID=$(id -u)
 export DOCKER_GID=$(id -g)
 ```
 
 In `docker-compose.yml`:
+
 ```yaml
 user: "${DOCKER_UID}:${DOCKER_GID}"
 ```

@@ -17,6 +17,7 @@ GitHub has two generations of project boards:
 This matters because most GitHub integrations — including the MCP server used in this project — are built on the REST API. They can fully manage issues, PRs, branches, and files, but they hit a hard wall when you ask them to touch the Projects board.
 
 In practice this means:
+
 - Creating an issue via the MCP works fine
 - Assigning that issue to a milestone via the MCP works fine
 - Moving that issue's card on the Projects board requires GraphQL — which the MCP doesn't support

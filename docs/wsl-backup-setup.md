@@ -33,6 +33,7 @@ rsync -av --delete ~/ /mnt/c/Users/Zoe/wsl-backup/
 ```
 
 **Flags explained:**
+
 - `-a` — archive mode (preserves permissions, timestamps, symlinks)
 - `-v` — verbose (shows files being copied)
 - `--delete` — removes files from the backup that no longer exist in source
@@ -55,7 +56,7 @@ If prompted to choose an editor, select `nano` (option 1).
 
 Add this line at the bottom:
 
-```
+```text
 */15 * * * * rsync -a --delete ~/ /mnt/c/Users/Zoe/wsl-backup/ >> /tmp/wsl-backup.log 2>&1
 ```
 
@@ -89,7 +90,7 @@ sudo visudo
 
 Add this line at the bottom (replace `yourusername` with your WSL username):
 
-```
+```text
 yourusername ALL=(ALL) NOPASSWD: /usr/sbin/service cron start
 ```
 
