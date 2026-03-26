@@ -19,12 +19,13 @@ Linting and formatting standards need to be in place before code is written — 
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| | | |
+| Runtime | Node LTS (22) | Stable, well-supported, lower friction than Bun while learning other new things |
+| Package manager | pnpm via corepack | Fast, excellent monorepo workspace support, corepack enforces it automatically |
 
 ## Deliverables
 
-- [ ] Decide on package manager (npm / pnpm / yarn) and lock it in (#3)
-- [ ] Decide on Node version and lock it in (`.nvmrc` and/or `engines` field) (#4)
+- [x] Decide on package manager (npm / pnpm / yarn) and lock it in (#3)
+- [x] Decide on Node version and lock it in (`engines` field in package.json) (#4)
 - [ ] Set up ESLint across the monorepo (#5)
 - [ ] Set up Stylelint across the monorepo (#6)
 - [ ] Set up TypeScript type checking (`tsc --noEmit`) (#7)

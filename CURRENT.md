@@ -7,7 +7,7 @@
 **Setup Phase 3 — Linting**
 - Phase doc: `docs/phases/setup-phase-3-linting.md`
 - Milestone: #2
-- Open issues: #3, #4, #5, #6, #7, #8, #9, #10
+- Open issues: #5, #6, #7, #8, #9, #10
 
 ## Recently Completed
 
