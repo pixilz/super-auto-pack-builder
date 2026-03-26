@@ -26,4 +26,4 @@ Steps:
 8. Update `CURRENT.md`:
    - Set the active phase name, phase doc path, milestone number, and open issue numbers
    - Move the previous active phase (if any) into the Recently Completed table
-9. Remind the user to add the issues to the project board ("Super Auto Pack Builder") since the board cannot be updated automatically.
+9. Remind the user to close the previous milestone on GitHub if the previous phase is complete.
