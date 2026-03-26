@@ -1,7 +1,6 @@
 ---
 name: mark-phase-complete
-description: Mark a phase document as complete by updating its frontmatter
-disable-model-invocation: true
+description: Mark a phase document as complete by updating its frontmatter. Use when all deliverables are done and evals have passed.
 ---
 
 Mark a phase document as complete by updating its frontmatter.

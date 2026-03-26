@@ -1,7 +1,6 @@
 ---
 name: new-eval
-description: Create a new eval document from the template
-disable-model-invocation: true
+description: Create a new eval document from the template. Use when a phase is nearing completion and needs an eval before it can be marked done.
 ---
 
 Create a new eval document from the template at `docs/templates/eval.md`.

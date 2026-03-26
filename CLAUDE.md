@@ -109,14 +109,14 @@ See `docs/templates/eval.md` for the full template and structure.
 
 ## Available Slash Commands
 
-| Command | What it does | Auto-invocable |
-|---------|-------------|----------------|
-| `/new-phase-doc` | Create a new phase doc from template | No |
-| `/start-phase` | Create GitHub issues for a phase and assign them to the milestone | No |
-| `/add-learning-note` | Create a new learning note from template | Yes — triggers when something worth documenting is learned |
-| `/close-issue` | Close a GitHub issue and update CURRENT.md | Yes — triggers when work on an issue is complete |
-| `/mark-phase-complete` | Mark a phase doc as complete | No |
-| `/new-eval` | Create a new eval from template | No |
+| Command | What it does |
+|---------|-------------|
+| `/new-phase-doc` | Create a new phase doc from template |
+| `/start-phase` | Create GitHub issues for a phase and assign them to the milestone |
+| `/add-learning-note` | Create a new learning note from template |
+| `/close-issue` | Close a GitHub issue and update CURRENT.md |
+| `/mark-phase-complete` | Mark a phase doc as complete |
+| `/new-eval` | Create a new eval from template |
 
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: start-phase
-description: Start a phase by creating a GitHub issue for each task and assigning them to the correct milestone
-disable-model-invocation: true
+description: Start a phase by creating a GitHub issue for each task and assigning them to the correct milestone. Use when a phase has been agreed upon and is ready to begin.
 ---
 
 Start a phase by creating a GitHub issue for each task and assigning them to the correct milestone.

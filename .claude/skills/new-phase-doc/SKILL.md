@@ -1,7 +1,6 @@
 ---
 name: new-phase-doc
-description: Create a new phase document from the template
-disable-model-invocation: true
+description: Create a new phase document from the template. Use when starting work on a phase that doesn't have a phase doc yet.
 ---
 
 Create a new phase document from the template at `docs/templates/phase-doc.md`.
