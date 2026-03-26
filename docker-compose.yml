@@ -5,3 +5,8 @@ services:
     user: "${DOCKER_UID}:${DOCKER_GID}"
     volumes:
       - .:/app
+  hadolint:
+    image: hadolint/hadolint
+    volumes:
+      - .:/app
+    working_dir: /app

@@ -12,6 +12,12 @@
 | `docker compose run app <cmd>` | Run a single command inside the container |
 | `docker compose run --remove-orphans app sh` | Same, but clean up leftover containers first |
 
+## Linting
+
+| Command | What it does |
+|---------|-------------|
+| `docker compose run hadolint hadolint Dockerfile` | Lint the Dockerfile (run on host, not inside container) |
+
 ## pnpm
 
 | Command | What it does |
