@@ -1,8 +1,8 @@
 ---
 phase: setup-phase-3
-status: in-progress
+status: complete
 started: 2026-03-25
-completed:
+completed: 2026-03-26
 ---
 
 # Setup Phase 3 — Linting
@@ -26,12 +26,12 @@ Linting and formatting standards need to be in place before code is written — 
 
 - [x] Decide on package manager (npm / pnpm / yarn) and lock it in (#3)
 - [x] Decide on Node version and lock it in (`engines` field in package.json) (#4)
-- [ ] Set up ESLint across the monorepo (#5)
-- [ ] Set up Stylelint across the monorepo (#6)
-- [ ] Set up TypeScript type checking (`tsc --noEmit`) (#7)
-- [ ] Set up Markdownlint across the monorepo (#8)
-- [ ] Set up Hadolint for Dockerfiles (#9)
-- [ ] Verify all linting enforced consistently (#10)
+- [x] Set up ESLint across the monorepo (#5)
+- [x] Set up Stylelint across the monorepo (#6)
+- [x] Set up TypeScript type checking (`tsc --noEmit`) (#7)
+- [x] Set up Markdownlint across the monorepo (#8)
+- [x] Set up Hadolint for Dockerfiles (#9)
+- [x] Verify all linting enforced consistently (#10)
 
 ## Open Questions
 
