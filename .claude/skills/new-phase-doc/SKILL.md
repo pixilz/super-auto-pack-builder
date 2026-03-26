@@ -1,3 +1,9 @@
+---
+name: new-phase-doc
+description: Create a new phase document from the template
+disable-model-invocation: true
+---
+
 Create a new phase document from the template at `docs/templates/phase-doc.md`.
 
 Arguments: $ARGUMENTS

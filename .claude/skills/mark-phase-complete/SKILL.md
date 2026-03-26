@@ -1,3 +1,9 @@
+---
+name: mark-phase-complete
+description: Mark a phase document as complete by updating its frontmatter
+disable-model-invocation: true
+---
+
 Mark a phase document as complete by updating its frontmatter.
 
 Arguments: $ARGUMENTS

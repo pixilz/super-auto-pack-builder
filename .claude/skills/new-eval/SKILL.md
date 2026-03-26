@@ -1,3 +1,9 @@
+---
+name: new-eval
+description: Create a new eval document from the template
+disable-model-invocation: true
+---
+
 Create a new eval document from the template at `docs/templates/eval.md`.
 
 Arguments: $ARGUMENTS

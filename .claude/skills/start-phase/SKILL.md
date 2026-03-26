@@ -1,3 +1,9 @@
+---
+name: start-phase
+description: Start a phase by creating a GitHub issue for each task and assigning them to the correct milestone
+disable-model-invocation: true
+---
+
 Start a phase by creating a GitHub issue for each task and assigning them to the correct milestone.
 
 Arguments: $ARGUMENTS

@@ -1,3 +1,8 @@
+---
+name: add-learning-note
+description: Create a new learning note in docs/learning/. Use when something non-obvious has been learned that is worth documenting as resume material — e.g. a tool limitation, an architectural decision, or a surprising behaviour.
+---
+
 Create a new learning note from the template at `docs/templates/learning-note.md`.
 
 Arguments: $ARGUMENTS
