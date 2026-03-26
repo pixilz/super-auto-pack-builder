@@ -37,5 +37,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": []
+  "include": ["placeholder.ts"]
 }

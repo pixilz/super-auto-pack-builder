@@ -10,10 +10,11 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "lint:js": "eslint .",
-    "lint:css": "stylelint '**/*.css'",
+    "lint:css": "stylelint '**/*.css' --allow-empty-input",
     "lint:ts": "tsc --noEmit",
     "lint:md": "markdownlint-cli2 '**/*.md'",
-    "lint:md:fix": "markdownlint-cli2 --fix '**/*.md'"
+    "lint:md:fix": "markdownlint-cli2 --fix '**/*.md'",
+    "lint:full": "pnpm run lint:js && pnpm run lint:css && pnpm run lint:ts && pnpm run lint:md"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
