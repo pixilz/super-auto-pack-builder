@@ -47,8 +47,6 @@ Phases are meant to be worked through in order. Each phase should produce a **Ph
 - These notes are resume material. Write them as if explaining to a future interviewer.
 - Store in `docs/learning/`.
 
-> **Prerequisite before Phase 1:** Review Team Wood's Terms of Service to understand what is and isn't permitted around game file decompilation and public hosting of derived data. Do not begin Product Phase 1 until this is done.
-
 ---
 
 ### Product Phases — Discovery & Design

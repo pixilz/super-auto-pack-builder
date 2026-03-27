@@ -4,7 +4,11 @@
 
 ## Active Phase
 
-None.
+### Product Phase 1 — Data Source and Discovery
+
+- Phase doc: `docs/phases/product-phase-1-data-source-and-discovery.md`
+- Milestone: #4
+- Open issues: #20, #21, #22, #23
 
 ## Recently Completed
 
