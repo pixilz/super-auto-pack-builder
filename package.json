@@ -14,14 +14,18 @@
     "lint:ts": "tsc --noEmit",
     "lint:md": "markdownlint-cli2 '**/*.md'",
     "lint:md:fix": "markdownlint-cli2 --fix '**/*.md'",
-    "lint:full": "pnpm run lint:js && pnpm run lint:css && pnpm run lint:ts && pnpm run lint:md"
+    "lint:full": "pnpm run lint:js && pnpm run lint:css && pnpm run lint:ts && pnpm run lint:md",
+    "test": "vitest run",
+    "test:e2e": "node_modules/.bin/playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
     "eslint": "^10.1.0",
     "markdownlint-cli2": "^0.22.0",
     "stylelint": "^17.6.0",
     "stylelint-config-standard": "^40.0.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }

@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/playwright:v1.58.2-noble
+
+ENV COREPACK_HOME=/usr/local/share/corepack
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+
+WORKDIR /app

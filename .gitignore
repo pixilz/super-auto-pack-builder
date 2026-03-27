@@ -4,3 +4,4 @@
 node_modules
 .pnpm-store
 tmp
+test-results

@@ -94,6 +94,20 @@ user: "${DOCKER_UID}:${DOCKER_GID}"
 
 Note: `UID` is a bash readonly variable and isn't reliably exported to child processes — don't use it directly. Use `DOCKER_UID` instead.
 
+#### When files are already owned by root
+
+If you run a container before `DOCKER_UID`/`DOCKER_GID` are set, the container runs as root and creates root-owned files on the bind-mounted volume. Setting the env vars later doesn't fix existing files — they're already owned by root.
+
+Symptom: `EPERM: operation not permitted, chmod` on a file in `node_modules` when running as your own user.
+
+Fix: transfer ownership back to your host user:
+
+```bash
+sudo chown -R $USER:$USER node_modules
+```
+
+Prevention: set `DOCKER_UID` and `DOCKER_GID` in `.env` before running any container commands.
+
 ### Corepack Cache Location
 
 Corepack stores downloaded package manager binaries in the home directory of whoever runs it. If `corepack prepare` runs as root during `docker build`, the cache lands in `/root/.cache`. When you run the container as your own user, corepack can't find the cache and tries to download again.

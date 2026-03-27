@@ -4,7 +4,11 @@
 
 ## Active Phase
 
-None.
+### Setup Phase 4 — Testing Infrastructure
+
+- Phase doc: `docs/phases/setup-phase-4-testing-infrastructure.md`
+- Milestone: #3
+- Open issues: #15, #16, #17, #18, #19
 
 ## Recently Completed
 

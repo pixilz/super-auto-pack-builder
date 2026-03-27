@@ -51,7 +51,7 @@ _To be filled in._
 
 | Eval | File | Result |
 |---|---|---|
-| — | — | — |
+| Linting Verification | `docs/evals/setup-phase-3-linting-verification.md` | last-run: 2026-03-27T11:37:43 |
 
 ## Related
 

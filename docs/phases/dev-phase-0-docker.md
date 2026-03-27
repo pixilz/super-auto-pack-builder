@@ -49,7 +49,7 @@ Note: runtime (Node/Bun/etc.) and package manager are decided in Setup Phase 3 a
 
 | Eval | File | Result |
 |---|---|---|
-| — | — | — |
+| Docker Verification | `docs/evals/dev-phase-0-docker-verification.md` | last-run: 2026-03-27T11:37:43 |
 
 ## Related
 
