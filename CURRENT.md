@@ -4,16 +4,13 @@
 
 ## Active Phase
 
-### Setup Phase 4 — Testing Infrastructure
-
-- Phase doc: `docs/phases/setup-phase-4-testing-infrastructure.md`
-- Milestone: #3
-- Open issues: #15, #16, #17, #18, #19
+None.
 
 ## Recently Completed
 
 | Phase | Doc |
 |-------|-----|
+| Setup Phase 4 — Testing Infrastructure | `docs/phases/setup-phase-4-testing-infrastructure.md` |
 | Setup Phase 3 — Linting | `docs/phases/setup-phase-3-linting.md` |
 | Dev Phase 0 — Docker | `docs/phases/dev-phase-0-docker.md` |
 | Setup Phase 2 — Task Management | `docs/phases/setup-phase-2-task-management.md` |
