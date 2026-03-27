@@ -18,6 +18,15 @@
 |---------|-------------|
 | `docker compose run hadolint hadolint Dockerfile` | Lint the Dockerfile (run on host, not inside container) |
 
+## Cron / systemd
+
+| Command | What it does |
+|---------|-------------|
+| `crontab -l` | Show the cron config (scheduled job definitions) |
+| `systemctl status cron` | Show whether the cron daemon is running |
+| `sudo systemctl daemon-reload` | Re-read unit files from disk (run this if systemd warns about stale config) |
+| `grep CRON /var/log/syslog \| tail -20` | See recent cron activity in the system log |
+
 ## pnpm
 
 | Command | What it does |
