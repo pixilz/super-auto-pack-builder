@@ -351,6 +351,9 @@ CALLBACK_PET_OVERRIDES = {
         'abilities': ['DeinocheirusAbility'],
         'archetypes': {'producer': ['Ailments']},
     },
+    71: {  # Sloth — can't be in a pack, appears via special shop logic
+        'rollable': False,
+    },
 }
 
 # Trigger overrides for abilities that can't be traced through the standard
@@ -553,6 +556,8 @@ def extract_pets_from_isil(isil_dir, cs_dir):
                 pet['abilities'] = list(overrides['abilities'])
             if not pet.get('archetypes') and overrides.get('archetypes'):
                 pet['archetypes'] = dict(overrides['archetypes'])
+            if 'rollable' in overrides:
+                pet['rollable'] = overrides['rollable']
 
     # Fallback: for pets missing abilities/archetypes, parse raw assembly.
     # Cpp2IL's ISIL decompilation can truncate early in complex methods,
