@@ -52,22 +52,55 @@ We have a complete reference dataset from groundedsap.co.uk (581 pets, all field
 
 ## What I Learned
 
-(To be filled as work progresses)
+### SAP ability architecture has two trigger layers
+The game separates **activation triggers** (Sell, Buy, Faint — when the ability fires) from **effect triggers** (Start of battle — when effects execute). Lambda code configures effect triggers via `SetTrigger()` with factory functions. Activation triggers are determined by which `TriggerBase` subclass is instantiated — the TYPE itself encodes the trigger, not an enum field. Extracting activation triggers requires cracking IL2CPP type reference → class name mapping.
+
+### Metadata tokens in IL2CPP are not memory addresses
+Static data (DAT_ values) in IL2CPP binaries contain runtime metadata tokens (0x6000XXXX format), not direct pointers. These need to be resolved via the `CodeGenModule.methodPointers` array using a base offset derived from the module's method table. The base offset (46074 for Assembly-CSharp) must be discovered empirically.
+
+### Init flags as fingerprints
+Each lambda function has a unique static initialization flag (`DAT_183aXXXXX == '\0'` pattern). These flags appear identically in both Cpp2IL ISIL and Ghidra decompiled output, making them reliable cross-reference fingerprints (785/785 correct matches).
+
+### groundedsap.co.uk as Rosetta Stone
+Using a known-good external dataset to JOIN with extracted data (petID → abilityEnum + petID → trigger = abilityEnum → trigger) produces 100% accuracy with zero conflicts. This "Rosetta Stone" approach lets us validate and supplement binary extraction without needing to crack every native code path.
+
+## Research Results
+
+| Research | Finding | Accuracy |
+|---|---|---|
+| R1: Stat validation | Attack 98.7%, Health 97.7%, Tier 99.4% (token tier bug fixed) | High |
+| R2: Trigger factories | 36 factories map to 14 TriggerEnum values, but these are EFFECT triggers | N/A |
+| R3: Lambda-to-ability | Solved via Rosetta Stone join — 509 mappings, 0 conflicts | 100% |
+| R4: Descriptions | 71.4% match — gaps are icon placeholders, {0} params, "Works N times" suffixes | Medium |
+| R5: Coverage gaps | All fields extractable except activation triggers and community-curated tags | See matrix |
+
+## Accuracy Without External Data
+
+| Field | Accuracy |
+|-------|----------|
+| Name | 99.1% |
+| Attack | 98.7% |
+| Health | 97.7% |
+| Tier | 99.4% |
+| Archetype | 89.6% |
+| Description | ~71% |
+| **Trigger** | **0%** |
+| **Overall (excl. triggers)** | **97.1%** |
 
 ## Evals
 
 | Eval | File | Result |
 |---|---|---|
-| Stat accuracy vs groundedsap | | |
-| Trigger accuracy vs groundedsap | | |
-| Description accuracy vs groundedsap | | |
-| End-to-end pipeline output | | |
+| Stat accuracy vs groundedsap | `tmp/r1-stat-validation.json` | 98.7% atk, 97.7% hp, 99.4% tier |
+| Trigger accuracy (with map) | `tmp/r2-ability-trigger-map.json` | 100% (509 abilities) |
+| Description accuracy | `tmp/r4-description-validation.json` | 71.4% |
+| End-to-end pipeline | `scripts/data-pipeline/extract.py` | Runs, 672 pets output |
 
 ## Related
 
 - `docs/phases/product-phase-1-data-source-and-discovery.md`
 - `docs/game-file-map.md`
 - `docs/learning/unity-il2cpp-data-extraction.md`
-- `tmp/groundedsap-data.json` — reference dataset
-- `tmp/ghidra-lambdas-decompiled.c` — 7203 decompiled lambda functions
-- `tmp/ghidra-abilities-decompiled.c` — 22 decompiled ability creation functions
+- `scripts/data-pipeline/extract.py` — extraction pipeline
+- `scripts/data-pipeline/check-version.py` — version checker
+- `scripts/data-pipeline/trigger-map.json` — 509 ability→trigger mappings (Rosetta Stone)
