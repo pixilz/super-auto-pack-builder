@@ -62,6 +62,7 @@ _RELEASED_PACKS = frozenset({
     'CreateRelicsDraft',  # Draft relics
     'CreatePack8PlusMini1', 'CreatePack8PlusMini2', 'CreatePack8PlusMini3',
     'CreatePlusRelics',
+    'CreateMisc',  # Sloth and other misc pets
     'CreatePack8PlusFree',  # Spells
     'CreateAilments',  # Canned ailments
     'CreateTokens',  # Token spells
@@ -72,7 +73,6 @@ _RELEASED_PACKS = frozenset({
 _UNRELEASED_PACKS = frozenset({
     'CreateRework', 'CreateRework45', 'CreateReworkCustom',
     'CreateReworkDanger', 'CreateReworkMaybe',
-    'CreateMisc',
 })
 
 _DRAFT_PACKS = frozenset({
