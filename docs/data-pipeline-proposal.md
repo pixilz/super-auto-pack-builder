@@ -155,7 +155,10 @@ Compare scrape vs binary extraction. Flag discrepancies for review:
 
 ## Open Questions
 
-1. **Game file download:** Steam doesn't have a public download API. Options: SteamCMD with a bot account, manual download triggered by version check alert, or skip binary extraction entirely and rely on groundedsap.
+1. **Game file download:** Three options, none yet proven end-to-end:
+   - **Option A: itch.io via headless browser.** The web version is hosted at `html-classic.itch.zone/html/16823967/Production/`. The CDN requires itch.io's auth flow (signed redirect), so simple HTTP requests get 403. A Playwright script could navigate to the game page, click "Run game", and capture the WASM binary + data files from network requests. Cpp2IL supports WASM via `--wasm-framework-file`. We already have Playwright in the project. Not yet tested.
+   - **Option B: SteamCMD with a bot account.** Standard approach for Steam games. Requires maintaining a Steam account.
+   - **Option C: Manual download.** Version check script sends an alert, human downloads and drops files in a directory. Pipeline picks them up.
 2. **Groundedsap update lag:** How long after a patch does groundedsap update? If >24 hours, we might want to serve binary-extracted data for new pets during the gap.
 3. **Food/spell data:** Groundedsap also has a Foods page. Same scraping approach applies.
 4. **Rate limiting:** One scrape per day is well within reasonable limits. No API key needed.
