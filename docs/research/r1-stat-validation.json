@@ -1,0 +1,368 @@
+{
+  "matches": {
+    "attack": 523,
+    "health": 518,
+    "tier": 502
+  },
+  "mismatches": {
+    "attack": [
+      {
+        "name": "Ethiopian Wolf",
+        "id": 406,
+        "groundedsap": 2,
+        "extracted": 3,
+        "delta": 1
+      },
+      {
+        "name": "Flea",
+        "id": 225,
+        "groundedsap": 3,
+        "extracted": 4,
+        "delta": 1
+      },
+      {
+        "name": "Gharial",
+        "id": 231,
+        "groundedsap": 5,
+        "extracted": 4,
+        "delta": -1
+      },
+      {
+        "name": "Roloway Monkey",
+        "id": 429,
+        "groundedsap": 2,
+        "extracted": 1,
+        "delta": -1
+      },
+      {
+        "name": "Ruspolis Turaco",
+        "id": 802,
+        "groundedsap": 4,
+        "extracted": 1,
+        "delta": -3
+      },
+      {
+        "name": "Sting Ray",
+        "id": 178,
+        "groundedsap": 5,
+        "extracted": 4,
+        "delta": -1
+      },
+      {
+        "name": "Lioness",
+        "id": 114,
+        "groundedsap": 4,
+        "extracted": 7,
+        "delta": 3
+      }
+    ],
+    "health": [
+      {
+        "name": "Ethiopian Wolf",
+        "id": 406,
+        "groundedsap": 3,
+        "extracted": 2,
+        "delta": -1
+      },
+      {
+        "name": "Pigeon",
+        "id": 559,
+        "groundedsap": 1,
+        "extracted": 2,
+        "delta": 1
+      },
+      {
+        "name": "Lemur",
+        "id": 236,
+        "groundedsap": 4,
+        "extracted": 3,
+        "delta": -1
+      },
+      {
+        "name": "Snail",
+        "id": 72,
+        "groundedsap": 2,
+        "extracted": 3,
+        "delta": 1
+      },
+      {
+        "name": "Flea",
+        "id": 225,
+        "groundedsap": 2,
+        "extracted": 3,
+        "delta": 1
+      },
+      {
+        "name": "Gharial",
+        "id": 231,
+        "groundedsap": 2,
+        "extracted": 3,
+        "delta": 1
+      },
+      {
+        "name": "Roloway Monkey",
+        "id": 429,
+        "groundedsap": 5,
+        "extracted": 4,
+        "delta": -1
+      },
+      {
+        "name": "Puppy",
+        "id": 97,
+        "groundedsap": 6,
+        "extracted": 5,
+        "delta": -1
+      },
+      {
+        "name": "Ruspolis Turaco",
+        "id": 802,
+        "groundedsap": 3,
+        "extracted": 6,
+        "delta": 3
+      },
+      {
+        "name": "Trout",
+        "id": 706,
+        "groundedsap": 4,
+        "extracted": 3,
+        "delta": -1
+      },
+      {
+        "name": "Scorpion",
+        "id": 65,
+        "groundedsap": 1,
+        "extracted": 3,
+        "delta": 2
+      },
+      {
+        "name": "Lioness",
+        "id": 114,
+        "groundedsap": 5,
+        "extracted": 7,
+        "delta": 2
+      }
+    ],
+    "tier": [
+      {
+        "name": "Adult Flounder",
+        "id": 777,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Angry Pygmy Hog",
+        "id": 821,
+        "groundedsap": 1,
+        "extracted": 2,
+        "delta": 1
+      },
+      {
+        "name": "Bee",
+        "id": 4,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Bus",
+        "id": 85,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Butterfly",
+        "id": 9,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Chick",
+        "id": 13,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Cuckoo Chick",
+        "id": 788,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Daycrawler",
+        "id": 641,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Dirty Rat",
+        "id": 58,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Golden Retriever",
+        "id": 188,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Good Dog",
+        "id": 658,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Lizard Tail",
+        "id": 282,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Loyal Chinchilla",
+        "id": 183,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Nest",
+        "id": 508,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Quail",
+        "id": 702,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Ram",
+        "id": 62,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Sleeping Gelada",
+        "id": 780,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Smaller Slug",
+        "id": 270,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Smallest Slug",
+        "id": 477,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Zombie Cricket",
+        "id": 86,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Zombie Fly",
+        "id": 31,
+        "groundedsap": 1,
+        "extracted": 6,
+        "delta": 5
+      },
+      {
+        "name": "Tand and Tand",
+        "id": 819,
+        "groundedsap": 4,
+        "extracted": 6,
+        "delta": 2
+      }
+    ]
+  },
+  "gsap_only": [
+    "Burbel",
+    "Chimera Goat",
+    "Chimera Lion",
+    "Chimera Snake",
+    "Cracked Egg",
+    "Fake Nessie",
+    "Fire Pup",
+    "Giant Eyes Dog",
+    "Great One",
+    "Guinea Piglet",
+    "Hydra Head",
+    "Monty",
+    "Rock",
+    "Smaller Slime",
+    "Young Phoenix",
+    "Griffin",
+    "Lucky Cat",
+    "Abomination",
+    "Chimera",
+    "Cyclops",
+    "Kraken",
+    "Minotaur",
+    "Roc",
+    "Tiger Bug",
+    "Unicorn",
+    "Visitor",
+    "Worm of Sand",
+    "Amalgamation",
+    "Bad Dog",
+    "Hippogriff"
+  ],
+  "ext_only": [
+    "BadDolphin",
+    "BadRat",
+    "BadGorilla",
+    "BadAnt",
+    "BadSheep",
+    "BadSeahorse",
+    "Artemis",
+    "Apollo",
+    "Hermes",
+    "Athena",
+    "Eris",
+    "Enyo",
+    "Hebe",
+    "Ares",
+    "Hades",
+    "BabyMammoth",
+    "Alligator",
+    "Cameroceras",
+    "Anomalocaris",
+    "FalseKillerWhale",
+    "Cicada",
+    "GiantSloth",
+    "PrayingMantisMoustache",
+    "RelicBalloon",
+    "RelicWoodenStick",
+    "RelicTennisBall",
+    "RelicRadio",
+    "RelicGarlicPress",
+    "RelicToySaw",
+    "RelicToyGun"
+  ],
+  "gsap_only_count": 50,
+  "ext_only_count": 142
+}

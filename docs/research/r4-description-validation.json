@@ -1,0 +1,128 @@
+{
+  "total": 503,
+  "match": 382,
+  "mismatch": 121,
+  "missing": 14,
+  "sample_mismatches": [
+    {
+      "pet_id": 628,
+      "ability": "BakuAbility",
+      "gsap": "If turn number is even, replace random ailments with +1 health on two friends.",
+      "ours": "Replace random ailments with +1 {HealthIcon} health on two friends."
+    },
+    {
+      "pet_id": 621,
+      "ability": "BarghestAbility",
+      "gsap": "Make the last perk-less enemy Spooked.",
+      "ours": "Make the last perk-less enemy Spooked {ScaredIcon}."
+    },
+    {
+      "pet_id": 88,
+      "ability": "BeetleAbility",
+      "gsap": "Give Walnut perk to nearest friend behind.",
+      "ours": "Gain the Walnut {PerkIcon} perk."
+    },
+    {
+      "pet_id": 401,
+      "ability": "BombusDahlbomiiAbility",
+      "gsap": "Deal 1 damage to the first enemy. Works 2 times per battle.",
+      "ours": "Deal 1 {DamageIcon} damage to the first enemy."
+    },
+    {
+      "pet_id": 408,
+      "ability": "FanMusselAbility",
+      "gsap": "Takes 1 less damage. Works 2 times per turn.",
+      "ours": "Takes 1 less damage."
+    },
+    {
+      "pet_id": 198,
+      "ability": "FrilledDragonAbility",
+      "gsap": "Gain +1 attack and +1 health per Faint friend.",
+      "ours": "Gain +1 {AttackIcon} attack and +1 {HealthIcon} health per {0} friend."
+    },
+    {
+      "pet_id": 229,
+      "ability": "GeckoAbility",
+      "gsap": "If you have a toy, gain +2 health.",
+      "ours": "Gain +2 {HealthIcon} health."
+    },
+    {
+      "pet_id": 658,
+      "ability": "GoodDogAbility",
+      "gsap": "Give friends plenty of useful perks!",
+      "ours": "Give friends plenty of useful perks! {HealthIcon}"
+    },
+    {
+      "pet_id": 421,
+      "ability": "MalayTapirAbility",
+      "gsap": "Gain +1 health. Works 3 times per turn.",
+      "ours": "Gain +1 {HealthIcon} health."
+    },
+    {
+      "pet_id": 187,
+      "ability": "OpossumAbility",
+      "gsap": "Give one random Faint pet in the shop +1 attack and +1 health.",
+      "ours": "Give one random {0} pet in the shop +1 {AttackIcon} attack and +1 {HealthIcon} h"
+    },
+    {
+      "pet_id": 627,
+      "ability": "PengobbleAbility",
+      "gsap": "Gain 2 bonus mana. Works 2 times per turn.",
+      "ours": "Gain 2 bonus {ManaIcon} mana."
+    },
+    {
+      "pet_id": 558,
+      "ability": "PheasantAbility",
+      "gsap": "Give it the Strawberry perk until next turn. Works 1 time per turn.",
+      "ours": "Give it the Strawberry perk until next turn."
+    },
+    {
+      "pet_id": 732,
+      "ability": "PinkRobinAbility",
+      "gsap": "Activate End Turn on one random tier 2 or lower friend.",
+      "ours": "Activate <b>End Turn</b> on one random tier 2 or lower friend."
+    },
+    {
+      "pet_id": 260,
+      "ability": "SilkmothAbility",
+      "gsap": "Give it +1 health. Works 2 times per turn.",
+      "ours": "Give it +1 {HealthIcon} health."
+    },
+    {
+      "pet_id": 746,
+      "ability": "LongWattledUmbrellabirdAbility",
+      "gsap": "Make the nearest friend ahead Dazed.",
+      "ours": "Make the nearest friend ahead Dazed {DeafIcon}."
+    },
+    {
+      "pet_id": 440,
+      "ability": "VolcanoSnailAbility",
+      "gsap": "Make one random perk-less enemy Toasty.",
+      "ours": "Make one random perk-less enemy Toasty {ToastyIcon}."
+    },
+    {
+      "pet_id": 708,
+      "ability": "WeevilAbility",
+      "gsap": "Give them +1 attack until next turn. Works 3 times per turn.",
+      "ours": "Give them +1 {AttackIcon} attack until next turn."
+    },
+    {
+      "pet_id": 394,
+      "ability": "AraripeManakinAbility",
+      "gsap": "Gain +3 health until next turn. Works 2 times per turn.",
+      "ours": "Gain +3 {HealthIcon} health until next turn."
+    },
+    {
+      "pet_id": 537,
+      "ability": "BassAbility",
+      "gsap": "Give one level 2 Sell friend +1 experience.",
+      "ours": "Give one level 2 <b>Sell</b> friend +1 {ExpIcon} experience."
+    },
+    {
+      "pet_id": 87,
+      "ability": "BatAbility",
+      "gsap": "Make one random enemy Weak. Works 1 time per battle.",
+      "ours": "Make one random enemy Weak {WeakIcon}."
+    }
+  ]
+}
