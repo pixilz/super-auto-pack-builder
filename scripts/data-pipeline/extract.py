@@ -36,30 +36,70 @@ def log(msg):
 
 
 # ============================================================
-# Game mode categorization
+# Game mode and release status categorization.
+#
+# "Released" = the pack's Create method is called from EnsureMinions/EnsureSpells
+# (the main initialization path). Packs not called are unreleased/reworking.
+#
+# "Mode" = standard (normal play), draft (draft mode only), bully (bully mode),
+# or test (internal testing).
 # ============================================================
 
+# Packs called from EnsureMinions = released content
+_RELEASED_PACKS = frozenset({
+    'CreatePack1Turtle', 'CreatePack2Puppy', 'CreatePack2PuppyCustom',
+    'CreatePack3Star', 'CreatePack3StarCustom', 'CreatePack3StarCustomBeta',
+    'CreatePack3StarTokens',
+    'CreateCustom', 'CreateCustomBeta',
+    'CreatePack4Golden', 'CreatePack4GoldenCustom', 'CreatePack4GoldenCustomBeta',
+    'CreatePack5Unicorn', 'CreatePack5UnicornCustom', 'CreatePack5UnicornCustomBeta',
+    'CreatePack5UnicornRelics',  # Unicorn toys
+    'CreatePack6Danger', 'CreatePack6DangerCustom',
+    'CreatePack7Color',
+    'CreatePack2PuppyRelics',  # Puppy toys
+    'CreateBullyMinions',
+    'CreateRelicsHard',  # Hard mode toys
+    'CreateRelicsDraft',  # Draft relics
+    'CreatePack8PlusMini1', 'CreatePack8PlusMini2', 'CreatePack8PlusMini3',
+    'CreatePlusRelics',
+    'CreatePack8PlusFree',  # Spells
+    'CreateAilments',  # Canned ailments
+    'CreateTokens',  # Token spells
+    # Perk sources
+    'CreatePerks', 'CreatePerksDanger', 'CreatePlusPerks',
+})
+
+_UNRELEASED_PACKS = frozenset({
+    'CreateRework', 'CreateRework45', 'CreateReworkCustom',
+    'CreateReworkDanger', 'CreateReworkMaybe',
+    'CreateMisc',
+})
+
 _DRAFT_PACKS = frozenset({
-    'CreateDraft', 'CreateRelicsDraft', 'CreateRelicsHard',
-    'CreatePack2PuppyRelics', 'CreatePack5UnicornRelics', 'CreatePlusRelics',
+    'CreateDraft', 'CreateRelicsDraft',
 })
 
 _BULLY_PACKS = frozenset({'CreateBullyMinions'})
 
 _TEST_PACKS = frozenset({'CreatePack9000Test', 'CreatePack9000TestEvaluators'})
 
-_DRAFT_PERK_SOURCES = frozenset({'CreateDraft'})
-
 
 def classify_mode(pack_or_source):
     """Classify a pack/source method name into a game mode."""
-    if pack_or_source in _DRAFT_PACKS or pack_or_source in _DRAFT_PERK_SOURCES:
+    if pack_or_source in _DRAFT_PACKS:
         return 'draft'
     if pack_or_source in _BULLY_PACKS:
         return 'bully'
     if pack_or_source in _TEST_PACKS:
         return 'test'
+    if pack_or_source in _UNRELEASED_PACKS:
+        return 'unreleased'
     return 'standard'
+
+
+def is_released(pack_or_source):
+    """Check if a pack/source method's items are released (called from EnsureMinions)."""
+    return pack_or_source in _RELEASED_PACKS
 
 
 # ============================================================
@@ -1190,6 +1230,7 @@ def assemble_json(pets, ability_descriptions, display_names, trigger_map, standa
             "tier": p.get('tier'),
             "rollable": p.get('rollable', True),
             "mode": classify_mode(p.get('pack', '')),
+            "released": is_released(p.get('pack', '')),
         }
 
         if p.get('attack') is not None:
@@ -1316,6 +1357,7 @@ def main():
         # Add mode classification
         for s in spells_output:
             s['mode'] = classify_mode(s.get('pack', ''))
+            s['released'] = is_released(s.get('pack', ''))
 
         with open(args.output_spells, 'w') as f:
             json.dump(spells_output, f, indent=2, ensure_ascii=False)
@@ -1336,6 +1378,7 @@ def main():
         # Add mode classification
         for p in perks_output:
             p['mode'] = classify_mode(p.get('source', ''))
+            p['released'] = is_released(p.get('source', ''))
 
         with open(args.output_perks, 'w') as f:
             json.dump(perks_output, f, indent=2, ensure_ascii=False)
