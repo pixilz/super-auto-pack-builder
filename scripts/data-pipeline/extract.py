@@ -35,6 +35,22 @@ def log(msg):
     print(f"[PIPELINE] {msg}", file=sys.stderr)
 
 
+def _get_pe_image_base(game_dir):
+    """Read the PE image base from GameAssembly.dll header."""
+    dll_path = os.path.join(game_dir, "GameAssembly.dll")
+    if not os.path.exists(dll_path):
+        return 0x180000000  # standard default for 64-bit Windows PE
+    with open(dll_path, 'rb') as f:
+        f.seek(0x3C)
+        pe_offset = struct.unpack('<I', f.read(4))[0]
+        f.seek(pe_offset + 24 + 24)  # OptionalHeader + offset to ImageBase
+        return struct.unpack('<Q', f.read(8))[0]
+
+
+# Lazily resolved PE image base (set in main() from game files)
+_IMAGE_BASE = 0x180000000
+
+
 # ============================================================
 # Game mode and release status categorization.
 #
@@ -364,34 +380,53 @@ CALLBACK_TRIGGER_OVERRIDES = {
 }
 
 
-# Hardcoded archetype values for pets that use RuntimeHelpers.InitializeArray
-# to bulk-initialize archetype arrays from binary blobs in GameAssembly.dll.
-# The blob addresses are IL2CPP metadata usage tokens that can't be resolved
-# statically without parsing the full IL2CPP metadata chain.
-# Keyed by blob virtual address → list of Archetype enum int values.
-# Source: groundedsap.co.uk cross-referenced with ISIL SetArchetype* calls.
-RUNTIME_INIT_ARCHETYPE_BLOBS = {
-    0x183874468: [12, 3],         # Vervet: Toys, Summon
-    0x183875F20: [27, 1],         # Dung Beetle: Disruption, Food
-    0x1838772B0: [12],            # Ferret: Toys
-    0x183873D48: [27],            # Hoopoe Bird: Disruption
-    0x183873B80: [12],            # Gharial: Toys
-    0x183875800: [12],            # Puppy: Toys
-    0x183876808: [27],            # Lionfish: Disruption
-    0x1838782B0: [5, 27],         # Woodpecker: Hurt, Disruption
-    0x1838752A8: [12],            # Cuddle Toad: Toys
-    0x183878640: [7, 27],         # Drop Bear: Guard, Disruption
-    0x1838750E0: [17, 15],        # Fur-Bearing Trout: Mana, Perks
-    0x1838742A0: [7, 15],         # Brain Cramp: Guard, Perks
-    0x183877640: [12],            # Fairy: Toys
-    0x183875470: [9, 7, 17],      # Hippocampus: Roll, Guard, Mana
-    0x183873F10: [12],            # Questing Beast: Toys
+# Archetype values for pets that use RuntimeHelpers.InitializeArray to bulk-
+# initialize archetype arrays from IL2CPP metadata blobs. These can't be resolved
+# statically, so we key by pet name (stable across versions) instead of blob address.
+# Source: in-game data cross-referenced with ISIL SetArchetype* calls.
+BULK_ARCHETYPE_OVERRIDES = {
+    'Vervet': {'producer': ['Toys', 'Summon']},
+    'DungBeetle': {'producer': ['Disruption', 'Food']},
+    'Ferret': {'producer': ['Toys']},
+    'HoopoeBird': {'producer': ['Disruption']},
+    'Gharial': {'producer': ['Toys']},
+    'Puppy': {'producer': ['Toys']},
+    'Lionfish': {'producer': ['Disruption']},
+    'Woodpecker': {'producer': ['Hurt', 'Disruption']},
+    'CuddleToad': {'producer': ['Toys']},
+    'DropBear': {'producer': ['Guard', 'Disruption']},
+    'FurBearingTrout': {'producer': ['Mana', 'Perks']},
+    'BrainCramp': {'producer': ['Guard', 'Perks']},
+    'Fairy': {'producer': ['Toys']},
+    'Hippocampus': {'producer': ['Roll', 'Guard', 'Mana']},
+    'QuestingBeast': {'producer': ['Toys']},
 }
 
 
-def extract_pets_from_isil(isil_dir, cs_dir):
+def _resolve_nullable_ctor_addr(script_json_path):
+    """Look up Nullable<int>.ctor address from script.json.
+
+    In ISIL, this appears as 'Call 0xNNNNNNNNN' (an unresolved numeric call).
+    Returns the hex string as it appears in ISIL (e.g., '0x1811A24E0'), or None.
+    """
+    if not script_json_path or not os.path.exists(script_json_path):
+        return None
+    with open(script_json_path) as f:
+        script = json.load(f)
+    for entry in script['ScriptMethod']:
+        if entry.get('Name') == 'System.Nullable<int>$$.ctor':
+            addr = _IMAGE_BASE + entry['Address']
+            return f"0x{addr:X}"
+    return None
+
+
+def extract_pets_from_isil(isil_dir, cs_dir, script_json_path=None):
     """Parse Cpp2IL ISIL output to extract pet data."""
     log("Parsing ISIL for pet stats...")
+
+    nullable_ctor = _resolve_nullable_ctor_addr(script_json_path)
+    if not nullable_ctor:
+        log("  WARNING: Could not resolve Nullable<int>.ctor address — tier extraction may be incomplete")
 
     base_cs = os.path.join(cs_dir, "DiffableCs/Assembly-CSharp/Spacewood")
     enum_map = parse_cs_enum(os.path.join(base_cs, "Core/Enums/MinionEnum.cs"))
@@ -437,7 +472,7 @@ def extract_pets_from_isil(isil_dir, cs_dir):
         current_rollable = True
         pending_tier = None
         pending_archetype_values = []
-        pending_blob_va = None  # tracks blob VA between SzArrayNew and RuntimeHelpers
+        pending_blob_va = None
 
         for il in isil_lines:
             pm = re.match(r'(\d+)\s+(\w+)\s*(.*)', il)
@@ -486,7 +521,7 @@ def extract_pets_from_isil(isil_dir, cs_dir):
                 call_args = [p.strip() for p in call_parts[1:]]
                 arg_vals = [regs.get(a) for a in call_args]
 
-                if method_name == '0x1811A24E0':
+                if nullable_ctor and method_name == nullable_ctor:
                     if len(arg_vals) >= 2 and isinstance(arg_vals[1], int):
                         pending_tier = arg_vals[1]
 
@@ -505,8 +540,8 @@ def extract_pets_from_isil(isil_dir, cs_dir):
                     pending_blob_va = 'AWAITING'  # sentinel: next Move rdx,[0x...] is blob VA
 
                 elif method_name == 'RuntimeHelpers.InitializeArray':
-                    if isinstance(pending_blob_va, int) and pending_blob_va in RUNTIME_INIT_ARCHETYPE_BLOBS:
-                        pending_archetype_values = list(RUNTIME_INIT_ARCHETYPE_BLOBS[pending_blob_va])
+                    # Blob addresses are version-specific metadata tokens; skip here.
+                    # Archetypes for these pets are applied via BULK_ARCHETYPE_OVERRIDES.
                     pending_blob_va = None
 
                 elif method_name == 'MinionConstants.Create':
@@ -546,6 +581,12 @@ def extract_pets_from_isil(isil_dir, cs_dir):
 
         all_pets.extend(pets)
 
+    # Apply archetype overrides for pets using RuntimeHelpers.InitializeArray
+    # (bulk array init from IL2CPP metadata blobs that can't be resolved statically).
+    for pet in all_pets:
+        if pet['name'] in BULK_ARCHETYPE_OVERRIDES and not pet.get('archetypes'):
+            pet['archetypes'] = dict(BULK_ARCHETYPE_OVERRIDES[pet['name']])
+
     # Apply hardcoded overrides for pets whose abilities are set through
     # untraceable callback mechanisms.
     pets_by_enum = {p['enum']: p for p in all_pets if p.get('enum') is not None}
@@ -563,31 +604,60 @@ def extract_pets_from_isil(isil_dir, cs_dir):
     # Cpp2IL's ISIL decompilation can truncate early in complex methods,
     # leaving some pets without abilities even though the data exists in the
     # raw disassembly section above the ISIL block.
-    _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map)
+    _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map, script_json_path)
 
     log(f"Extracted {len(all_pets)} pets from ISIL")
     return all_pets
 
 
-# Known call addresses for raw assembly fallback parsing (x86-64 Windows PE)
-_ASM_ADDRS = {
-    'Create': '180820600',
-    'AddAbility': '180481C10',
-    'SetArchetypeProducer': '180482720',
-    'SetArchetypeConsumer': '180482680',
-    'SetArchetypeCustom': '180482640',
-    'SetStats': '180482D10',
-    'StartGroup': '180821C90',
-    'StartTokenGroup': '180821F30',
-}
+def _resolve_asm_addrs(script_json_path):
+    """Look up method addresses from Il2CppDumper script.json by method name.
+
+    Returns a dict like {'Create': '180820600', 'AddAbility': '180481C10', ...}
+    with hex address strings suitable for matching in raw assembly output.
+    """
+    if not script_json_path or not os.path.exists(script_json_path):
+        return {}
+
+    with open(script_json_path) as f:
+        script = json.load(f)
+
+    name_to_addr = {}
+    for entry in script['ScriptMethod']:
+        name = entry.get('Name', '')
+        addr = _IMAGE_BASE + entry['Address']
+        name_to_addr[name] = f"{addr:x}"
+
+    lookups = {
+        'Create': 'Spacewood.Core.Enums.MinionConstants$$Create',
+        'AddAbility': 'Spacewood.Core.Enums.MinionTemplate$$AddAbility',
+        'SetArchetypeProducer': 'Spacewood.Core.Enums.MinionTemplate$$SetArchetypeProducer',
+        'SetArchetypeConsumer': 'Spacewood.Core.Enums.MinionTemplate$$SetArchetypeConsumer',
+        'SetArchetypeCustom': 'Spacewood.Core.Enums.MinionTemplate$$SetArchetypeCustom',
+        'SetStats': 'Spacewood.Core.Enums.MinionTemplate$$SetStats',
+        'StartGroup': 'Spacewood.Core.Enums.MinionConstants$$StartGroup',
+        'StartTokenGroup': 'Spacewood.Core.Enums.MinionConstants$$StartTokenGroup',
+    }
+
+    result = {}
+    for key, full_name in lookups.items():
+        if full_name in name_to_addr:
+            result[key] = name_to_addr[full_name]
+
+    return result
 
 
-def _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map):
+def _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map, script_json_path=None):
     """Fill missing abilities/archetypes by parsing raw x86 assembly as fallback."""
     incomplete = {p['enum'] for p in all_pets if p.get('enum') is not None and not p.get('abilities')}
     if not incomplete:
         return
     log(f"  Assembly fallback: {len(incomplete)} pets with missing abilities")
+
+    asm_addrs = _resolve_asm_addrs(script_json_path)
+    if not asm_addrs.get('Create'):
+        log("  Assembly fallback skipped: no script.json for address resolution")
+        return
 
     with open(mc_path) as f:
         content = f.read()
@@ -647,7 +717,7 @@ def _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map):
                 continue
 
             # MinionConstants.Create
-            if _ASM_ADDRS['Create'] in s:
+            if asm_addrs['Create'] in s:
                 if last_ecx in incomplete:
                     current_enum = last_ecx
                     pending_arch_vals = []
@@ -656,7 +726,7 @@ def _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map):
                 last_ecx = None
 
             # MinionTemplate.AddAbility
-            elif _ASM_ADDRS['AddAbility'] in s and current_enum:
+            elif asm_addrs['AddAbility'] in s and current_enum:
                 if last_edx is not None and current_enum in pets_by_enum:
                     ab_name = ability_map.get(last_edx, f"Ability_{last_edx}")
                     if ab_name not in pets_by_enum[current_enum]['abilities']:
@@ -664,9 +734,9 @@ def _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map):
 
             # SetArchetype*
             elif current_enum:
-                for arch_type, addr in [('producer', _ASM_ADDRS['SetArchetypeProducer']),
-                                        ('consumer', _ASM_ADDRS['SetArchetypeConsumer']),
-                                        ('custom', _ASM_ADDRS['SetArchetypeCustom'])]:
+                for arch_type, addr in [('producer', asm_addrs['SetArchetypeProducer']),
+                                        ('consumer', asm_addrs['SetArchetypeConsumer']),
+                                        ('custom', asm_addrs['SetArchetypeCustom'])]:
                     if addr in s and pending_arch_vals:
                         pets_by_enum[current_enum]['archetypes'][arch_type] = [
                             archetype_map.get(v, f"Archetype_{v}") for v in pending_arch_vals
@@ -683,13 +753,12 @@ def _fill_missing_from_assembly(mc_path, all_pets, ability_map, archetype_map):
 # Step 3: Standalone trigger extraction
 # ============================================================
 
-def extract_enum_to_metadata(isil_dir):
+def extract_enum_to_metadata(isil_dir, nullable_ctor_addr=None):
     """Parse AbilityConstants ISIL to map AbilityEnum → lambda metadata pointer address.
 
     In each CreatePackX method's ISIL section, the repeating pattern per ability is:
-        Move r8, [0x183852898]               ← shared setup addr (ignore)
         Move rdx, <enum_int>                 ← AbilityEnum value
-        Call 0x1811A24E0, rcx, rdx           ← enum constructor
+        Call <nullable_ctor>, rcx, rdx       ← enum constructor (address varies per build)
         ... (delegate construction) ...
         Move r8, [0x<lambda_metadata_addr>]  ← lambda delegate pointer
         ... (more setup) ...
@@ -769,7 +838,7 @@ def extract_enum_to_metadata(isil_dir):
                 call_target = args.split(',')[0].strip()
 
                 # The enum constructor call: captures the enum value from rdx
-                if call_target == '0x1811A24E0':
+                if nullable_ctor_addr and call_target == nullable_ctor_addr:
                     if last_rdx_int is not None and last_rdx_int > 0:
                         pending_enum = last_rdx_int
 
@@ -797,7 +866,7 @@ def build_metadata_to_lambda_map(script_json_path):
         name = entry.get('Name', '')
         if 'AbilityConstants.<>c.<' not in name:
             continue
-        addr = 0x180000000 + entry['Address']
+        addr = _IMAGE_BASE + entry['Address']
         m = re.search(r'<(Create\w+)>b__(\d+)_(\d+)', name)
         if m:
             clean = f"<{m.group(1)}>b__{m.group(2)}_{m.group(3)}"
@@ -1033,7 +1102,8 @@ def extract_triggers_standalone(isil_dir, script_json_path, ability_enum_map):
     """
     log("Extracting standalone triggers...")
 
-    enum_to_mem = extract_enum_to_metadata(isil_dir)
+    nullable_ctor = _resolve_nullable_ctor_addr(script_json_path)
+    enum_to_mem = extract_enum_to_metadata(isil_dir, nullable_ctor)
     log(f"  AbilityEnum → metadata addr: {len(enum_to_mem)} mappings")
 
     mem_to_lambda = build_metadata_to_lambda_map(script_json_path)
@@ -1298,6 +1368,10 @@ def main():
         log("Download from https://github.com/SamboyCoding/Cpp2IL/releases")
         sys.exit(1)
 
+    # Resolve PE image base from game files
+    global _IMAGE_BASE
+    _IMAGE_BASE = _get_pe_image_base(args.game_dir)
+
     # Step 1: Cpp2IL
     isil_dir, cs_dir = run_cpp2il(args.game_dir, work_dir, cpp2il)
 
@@ -1307,7 +1381,7 @@ def main():
         script_json_path = run_il2cppdumper(args.game_dir, work_dir, args.il2cppdumper)
 
     # Step 2: Parse ISIL
-    pets = extract_pets_from_isil(isil_dir, cs_dir)
+    pets = extract_pets_from_isil(isil_dir, cs_dir, script_json_path)
 
     # Step 3: Standalone trigger extraction
     base_cs = os.path.join(cs_dir, "DiffableCs/Assembly-CSharp/Spacewood")
