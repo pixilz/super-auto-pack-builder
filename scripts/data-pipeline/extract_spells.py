@@ -206,11 +206,13 @@ def extract_spells_from_isil(isil_dir, cs_dir):
     return all_spells
 
 
-def assemble_spells_json(spells, spell_descriptions, display_names):
+def assemble_spells_json(spells, spell_descriptions, display_names, perk_names=None):
     """Assemble spell data into output format.
 
     spell_descriptions: {spell_internal_name: {"about": "text", "fineprint": "text"}}
+    perk_names: set of perk internal names (from Perk enum), used to link perk_spell → perk
     """
+    perk_names = perk_names or set()
     output = []
     for s in spells:
         name = display_names.get(s['name'], s['name'])
@@ -226,6 +228,11 @@ def assemble_spells_json(spells, spell_descriptions, display_names):
 
         if s.get('price') is not None:
             entry["price"] = s['price']
+
+        # Link perk_spell entries to their perk by name match
+        if s.get('type') == 'perk_spell' and s['name'] in perk_names:
+            perk_display = display_names.get(s['name'], s['name'])
+            entry["perkName"] = perk_display
 
         # Description from Spell.X.About localization key, with hardcoded fallback
         desc = spell_descriptions.get(s['name'], {})

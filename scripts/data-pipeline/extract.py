@@ -61,6 +61,15 @@ _IMAGE_BASE = 0x180000000
 # or test (internal testing).
 # ============================================================
 
+# Packs whose pets are toys (relics) rather than regular pets
+_TOY_PACKS = frozenset({
+    'CreatePack2PuppyRelics',    # Puppy pack toys
+    'CreatePack5UnicornRelics',  # Unicorn pack toys
+    'CreateRelicsHard',          # Hard mode toys
+    'CreateRelicsDraft',         # Draft relics
+    'CreatePlusRelics',          # Plus relics
+})
+
 # Packs called from EnsureMinions = released content
 _RELEASED_PACKS = frozenset({
     'CreatePack1Turtle', 'CreatePack2Puppy', 'CreatePack2PuppyCustom',
@@ -116,6 +125,16 @@ def classify_mode(pack_or_source):
 def is_released(pack_or_source):
     """Check if a pack/source method's items are released (called from EnsureMinions)."""
     return pack_or_source in _RELEASED_PACKS
+
+
+def classify_type(pet):
+    """Classify a pet as 'toy', 'token', or 'pet' based on pack and attributes."""
+    pack = pet.get('pack', '')
+    if pack in _TOY_PACKS:
+        return 'toy'
+    if not pet.get('rollable', True) and not pet.get('abilities'):
+        return 'token'
+    return 'pet'
 
 
 # ============================================================
@@ -366,8 +385,32 @@ CALLBACK_PET_OVERRIDES = {
     741: {  # Deinocheirus
         'abilities': ['DeinocheirusAbility'],
         'archetypes': {'producer': ['Ailments']},
+        'description': 'Ailments on this work in reverse.',
+    },
+    704: {  # Quoll
+        'abilities': ['QuollAbility'],
+        'description': 'Sell: Choose one tier 1 food to stock at 1 gold.',
+    },
+    724: {  # Mandarinfish
+        'abilities': ['MandarinfishAbility'],
+        'description': 'Before attack: Replace own ailment with +2 attack and +2 health.',
+    },
+    701: {  # Pangasius
+        'abilities': ['PangasiusAbility'],
+        'description': 'Start of battle: Copy ailment (or Spooked) to the first enemy.',
+    },
+    770: {  # Estemmenosuchus
+        'abilities': ['EstemmenosuchusAbility'],
+        'description': 'Faint: Summon one 3/3 friend with +1 attack and +1 health for each different friendly ailment.',
+    },
+    769: {  # Dunkleosteus
+        'abilities': ['DunkleosteusAbility'],
+        'description': 'Before attack: Move ailment to the first two enemies.',
     },
     71: {  # Sloth — can't be in a pack, appears via special shop logic
+        'rollable': False,
+    },
+    821: {  # Angry Pygmy Hog — summoned token from Pygmy Hog faint ability
         'rollable': False,
     },
 }
@@ -599,6 +642,8 @@ def extract_pets_from_isil(isil_dir, cs_dir, script_json_path=None):
                 pet['archetypes'] = dict(overrides['archetypes'])
             if 'rollable' in overrides:
                 pet['rollable'] = overrides['rollable']
+            if overrides.get('description'):
+                pet['description_override'] = overrides['description']
 
     # Fallback: for pets missing abilities/archetypes, parse raw assembly.
     # Cpp2IL's ISIL decompilation can truncate early in complex methods,
@@ -1304,6 +1349,7 @@ def assemble_json(pets, ability_descriptions, display_names, trigger_map, standa
             "pack": p.get('pack'),
             "tier": p.get('tier'),
             "rollable": p.get('rollable', True),
+            "type": classify_type(p),
             "mode": classify_mode(p.get('pack', '')),
             "released": is_released(p.get('pack', '')),
         }
@@ -1324,6 +1370,10 @@ def assemble_json(pets, ability_descriptions, display_names, trigger_map, standa
                         about = ability_descriptions[ab_name][lvl].get('about', '')
                         if about:
                             ab_data[f"level{lvl}"] = about
+                # Fallback: use hardcoded description for callback pets
+                # whose abilities aren't in the localization bundles.
+                if 'level1' not in ab_data and p.get('description_override'):
+                    ab_data['level1'] = p['description_override']
                 if ab_data:
                     resolved.append(ab_data)
             if resolved:
@@ -1431,7 +1481,11 @@ def main():
         spells_raw = extract_spells_from_isil(isil_dir, cs_dir)
         log(f"Extracted {len(spells_raw)} spells from ISIL")
 
-        spells_output = assemble_spells_json(spells_raw, spell_descriptions, display_names)
+        # Load perk enum names for spell→perk linking
+        perk_enum_path = os.path.join(base_cs, "Core/Enums/Perk.cs")
+        perk_names = set(parse_cs_enum(perk_enum_path).values())
+
+        spells_output = assemble_spells_json(spells_raw, spell_descriptions, display_names, perk_names)
 
         # Add mode classification
         for s in spells_output:
