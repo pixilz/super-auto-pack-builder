@@ -6,3 +6,4 @@ node_modules
 tmp
 test-results
 Downloaded Super Auto Pets
+__pycache__
