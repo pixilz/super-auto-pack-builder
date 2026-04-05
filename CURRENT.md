@@ -94,20 +94,11 @@ Trigger "differences" are mostly naming format (`ThisDied` vs `Faint`, `EnemyAtt
 | Stat diffs vs GS | 16 | Game version difference (ours is newer) | Not a bug |
 | Missing from GS | 2 | Burbel + Guinea Piglet (legacy unused tokens) | Not needed |
 
-### Legacy/secondary extraction: `scripts/data-pipeline/extract.py`
+### Scripts
 
-Static decompilation pipeline (Cpp2IL + Il2CppDumper on Windows desktop build). **Mostly superseded** by `extract_web.py`. Was the original approach before we discovered the WASM memory reading technique. Still works but requires downloaded desktop game files, manual Cpp2IL runs, and has the 35 missing mythological pet gap that `extract_web.py` solved.
-
-### Supporting files
-
-| File | Status |
-|------|--------|
-| `scripts/data-pipeline/extract_web.py` | **PRIMARY** — the one script to rule them all |
-| `scripts/data-pipeline/extract.py` | Superseded — legacy ISIL pipeline |
-| `scripts/data-pipeline/extract_spells.py` | Superseded |
-| `scripts/data-pipeline/extract_perks.py` | Superseded |
-| `scripts/data-pipeline/trigger-map.json` | Superseded — triggers now from WASM |
-| `scripts/data-pipeline/check-version.py` | Still useful for desktop version checking |
+| File | Purpose |
+|------|---------|
+| `scripts/data-pipeline/extract_web.py` | **The only extraction script.** Everything else was removed. |
 
 ## Recently Completed
 
