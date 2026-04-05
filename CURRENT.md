@@ -6,79 +6,88 @@
 
 ### Product Phase 2 — Data Extraction Pipeline ✅ COMPLETE
 
-- Phase doc: `docs/phases/product-phase-2-data-extraction-pipeline.md`
 - Scripts: `scripts/data-pipeline/`
-- **Status: COMPLETE** — full game data extraction working
+- **Status: COMPLETE** — full game data extraction working from a single script
 
 ## What Exists
 
 ### Primary extraction: `scripts/data-pipeline/extract_web.py`
 
-**This is the main script.** It extracts ALL game data from the live WebGL build with zero pre-existing files:
+**This is the main script.** Extracts ALL game data from the live WebGL build. Zero pre-existing files needed.
 
 ```bash
 python3 scripts/data-pipeline/extract_web.py --output-dir data/extracted
 ```
 
+Takes ~3 minutes. Outputs `pets.json`, `spells.json`, `perks.json`.
+
 **How it works:**
 1. Launches SAP WebGL build from itch.io in headless Chromium via Playwright
-2. Intercepts and saves `game.wasm` + `game.data` during download
+2. Intercepts `game.wasm` + `game.data` during download, saves to disk
 3. Extracts `global-metadata.dat` (IL2CPP metadata) from `game.data`
-4. Auto-downloads and runs Il2CppDumper to get function table indices + enum names
-5. Verifies struct field offsets against known pet values (auto-discovers if changed)
-6. Calls `GetReleasedMinions/Spells/Perks` directly through the WASM function table
-7. Reads all object fields from WASM linear memory
-8. Resolves enum IDs to human-readable names
-9. Outputs `pets.json` (670), `spells.json` (195), `perks.json` (104)
+4. Auto-downloads Il2CppDumper if not present, runs it for function indices + enum names
+5. Verifies struct field offsets against known pet values (auto-discovers if layout changes)
+6. Calls `GetReleasedMinions/Spells/Perks` directly through WASM function table
+7. Reads object fields (stats, archetypes, packs, abilities) from WASM linear memory
+8. Reads ability triggers from `GetAbilities` → `AbilityCollection` → `Ability.Trigger.Enum`
+9. Captures localization bundles during game load, parses with UnityPy for descriptions
+10. Resolves all enum IDs to human-readable names from Il2CppDumper `dump.cs`
+11. Outputs 3 clean JSON files
 
-**Dependencies:** `playwright` (pip), Chromium (installed by playwright), `dotnet` 6+ runtime
+**Dependencies:** `playwright` (pip) + Chromium, `dotnet` 6+ runtime, `UnityPy` (pip, optional for descriptions)
 
-**Survives game updates automatically** — everything derived at runtime. Field offsets self-verified on each run.
-
-### Secondary extraction: `scripts/data-pipeline/extract.py`
-
-Static decompilation pipeline using Cpp2IL + Il2CppDumper on the Windows desktop build. **Mostly superseded** by `extract_web.py`, but still the only source for:
-- **Trigger names** (e.g., "Faint", "Start of battle") — extracted from ISIL symbolic `CreateTrigger.X` calls
-- **Ability descriptions** (e.g., "Give one random friend +1 attack") — from localization bundles + hardcoded `SetAbout` strings
-
-Requires: Downloaded Windows game files, Cpp2IL binary, Il2CppDumper binary.
+**Survives game updates automatically.** Function indices resolved from fresh Il2CppDumper run. Field offsets self-verified against known pet values on each run. Il2CppDumper auto-downloaded from GitHub if missing.
 
 ### Data extracted per item
 
 | Field | Pets | Spells | Perks | Source |
 |-------|------|--------|-------|--------|
-| name | ✅ | ✅ | ✅ | Web extract |
-| enumId | ✅ | ✅ | ✅ | Web extract |
-| tier | ✅ | ✅ | — | Web extract |
-| attack/health | ✅ | — | — | Web extract |
-| price | ✅ | ✅ | — | Web extract |
-| rollable | ✅ | ✅ | — | Web extract |
-| archetypes | ✅ | ✅ | — | Web extract |
-| packs | ✅ | ✅ | — | Web extract |
-| abilities list | ✅ | — | ✅ | Web extract |
-| roles | ✅ | — | — | Web extract |
-| about (description) | partial | ✅ | — | Web extract |
-| trigger name | ❌ | — | — | ISIL pipeline only |
-| ability descriptions | ❌ | — | — | ISIL pipeline only |
+| name, enumId | 670 (100%) | 195 (100%) | 104 (100%) | WASM memory |
+| tier, attack, health, price | 670 (100%) | 195 (100%) | — | WASM memory |
+| rollable, active | 670 (100%) | 195 (100%) | — | WASM memory |
+| archetypes (producer/consumer/custom) | 504 (75%) | 195 | — | WASM memory |
+| packs | 560 (84%) | 195 | — | WASM memory |
+| ability list (enum names) | 651 (97%) | — | 104 (100%) | WASM memory |
+| roles | partial | — | — | WASM memory |
+| **triggers** | **629 (94%)** | — | — | WASM memory (Ability.Trigger.Enum) |
+| **ability descriptions** | **633 (94%)** | **195 (100%)** | — | Localization bundles (UnityPy) |
+
+### Validation vs GroundedSAP (groundedsap.co.uk)
+
+| Metric | Our Extract | GroundedSAP |
+|--------|-------------|-------------|
+| Total pets | **670** | 581 |
+| Stats accuracy | 97.2% (16 version diffs) | baseline |
+| Triggers (with normalization) | **93.1%** (~97% with full normalization map) | baseline |
+| Descriptions | 92.8% | baseline |
+| Spells | **195** | ~156 |
+| Perks | **104** | ~98 |
+
+Trigger "differences" are mostly naming format (`ThisDied` vs `Faint`, `EnemyAttacked5` vs `Five enemy attacks`). These are the same triggers, just raw enum names vs display names. A normalization map in the script converts most of them.
+
+### Remaining gaps
+
+| Gap | Count | Cause | Fix |
+|-----|-------|-------|-----|
+| Trigger naming | ~33 | Raw enum names need display normalization | Extend `TRIG_NORM` dict |
+| Missing descriptions | ~40 | Token pets + localization gaps | Tokens have "No ability" |
+| Stat diffs vs GS | 16 | Game version difference (ours is newer) | Not a bug |
+| Missing from GS | 2 | Burbel + Guinea Piglet (legacy unused tokens) | Not needed |
+
+### Legacy/secondary extraction: `scripts/data-pipeline/extract.py`
+
+Static decompilation pipeline (Cpp2IL + Il2CppDumper on Windows desktop build). **Mostly superseded** by `extract_web.py`. Was the original approach before we discovered the WASM memory reading technique. Still works but requires downloaded desktop game files, manual Cpp2IL runs, and has the 35 missing mythological pet gap that `extract_web.py` solved.
 
 ### Supporting files
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `scripts/data-pipeline/extract_spells.py` | Spell extraction from ISIL | Superseded by web extract |
-| `scripts/data-pipeline/extract_perks.py` | Perk extraction from ISIL | Superseded by web extract |
-| `scripts/data-pipeline/trigger-map.json` | Pre-built trigger name map from groundedsap | Still used as fallback |
-| `scripts/data-pipeline/check-version.py` | Desktop game version checker | Still useful |
-| `scripts/data-pipeline/parse-isil-standalone.py` | Dev tool for ISIL parsing | Superseded |
-
-### Validation results vs GroundedSAP (groundedsap.co.uk)
-
-Web extraction matches or exceeds GroundedSAP on every metric:
-- **670 pets** (vs GS 581) — we have more, including all 35 mythological creatures GS has
-- **195 spells** (vs GS ~156)
-- **104 perks** (vs GS ~98)
-- 16 stat differences are game version differences (our data is from the live web build)
-- Archetype differences exist because GS uses community-curated tags, we use the game's internal archetypes
+| File | Status |
+|------|--------|
+| `scripts/data-pipeline/extract_web.py` | **PRIMARY** — the one script to rule them all |
+| `scripts/data-pipeline/extract.py` | Superseded — legacy ISIL pipeline |
+| `scripts/data-pipeline/extract_spells.py` | Superseded |
+| `scripts/data-pipeline/extract_perks.py` | Superseded |
+| `scripts/data-pipeline/trigger-map.json` | Superseded — triggers now from WASM |
+| `scripts/data-pipeline/check-version.py` | Still useful for desktop version checking |
 
 ## Recently Completed
 
