@@ -47,7 +47,7 @@ FUNCTION_NAMES = {
 }
 
 # Enum names we need to resolve
-ENUM_NAMES = ['Archetype', 'Pack', 'Role', 'AbilityEnum', 'MinionEnum', 'SpellEnum', 'Perk']
+ENUM_NAMES = ['Archetype', 'Pack', 'Role', 'AbilityEnum', 'MinionEnum', 'SpellEnum', 'Perk', 'TriggerEnum']
 
 # JS helpers injected into browser for reading WASM memory
 JS_HELPERS = """
@@ -198,6 +198,106 @@ def parse_enum_lookups(dump_cs_path):
             entries = re.findall(rf'public const {enum_name} (\w+) = (-?\d+);', m.group(1))
             lookups[enum_name] = {int(v): n for n, v in entries}
     return lookups
+
+
+def parse_localization_bundles(bundle_dir):
+    """Parse Unity localization bundles for ability descriptions and trigger names.
+
+    Returns (ability_descs, spell_descs) where:
+      ability_descs = {AbilityName: {1: "desc level 1", 2: "desc level 2", 3: "desc level 3"}}
+      spell_descs = {SpellName: "description"}
+    """
+    try:
+        import UnityPy
+    except ImportError:
+        log("WARNING: UnityPy not installed — descriptions will be missing")
+        return {}, {}
+
+    import math
+
+    def parse_binary_table(raw, start_offset):
+        entries = {}
+        pos = start_offset
+        while pos + 16 < len(raw):
+            key = struct.unpack_from('<q', raw, pos)[0]
+            str_len = struct.unpack_from('<I', raw, pos + 8)[0]
+            if str_len > 5000 or str_len <= 0:
+                break
+            str_padded = max(math.ceil(str_len / 4) * 4, 4)
+            text_start = pos + 12
+            if text_start + str_len > len(raw):
+                break
+            text = raw[text_start:text_start + str_len].decode('utf-8', errors='replace')
+            entries[key] = text
+            pos = text_start + str_padded + 4
+        return entries
+
+    def find_table_start(raw, s, e):
+        pos = s
+        while pos < e:
+            sl = struct.unpack_from('<I', raw, pos + 8)[0]
+            if 0 < sl < 200:
+                try:
+                    raw[pos + 12:pos + 12 + sl].decode('utf-8')
+                    return pos
+                except:
+                    pass
+            pos += 4
+        return None
+
+    shared_path = os.path.join(bundle_dir, 'localization-assets-shared_assets_all.bundle')
+    strings_path = os.path.join(bundle_dir, 'localization-string-tables-english_assets_all.bundle')
+
+    if not os.path.exists(shared_path) or not os.path.exists(strings_path):
+        log("WARNING: Localization bundles not found — descriptions will be missing")
+        return {}, {}
+
+    # Parse SharedTableData (key_name → key_id)
+    key_name_to_id = {}
+    env = UnityPy.load(shared_path)
+    for obj in env.objects:
+        if obj.type.name == 'MonoBehaviour' and len(obj.get_raw_data()) > 1000:
+            raw = obj.get_raw_data()
+            start = find_table_start(raw, 60, 200)
+            if start:
+                for kid, text in parse_binary_table(raw, start).items():
+                    key_name_to_id[text] = kid
+
+    # Parse StringTable (key_id → text)
+    id_to_text = {}
+    env2 = UnityPy.load(strings_path)
+    for obj in env2.objects:
+        if obj.type.name == 'MonoBehaviour' and len(obj.get_raw_data()) > 1000:
+            raw = obj.get_raw_data()
+            start = find_table_start(raw, 60, 200)
+            if start:
+                id_to_text.update(parse_binary_table(raw, start))
+
+    log(f"  Localization: {len(key_name_to_id)} keys, {len(id_to_text)} strings")
+
+    def clean_desc(s):
+        return re.sub(r'\s+', ' ', re.sub(r'\{(\w*Icon)\}\s*', '', s)).strip()
+
+    # Ability descriptions: Ability.X.N.About → level N description
+    ability_descs = {}
+    for key_name, key_id in key_name_to_id.items():
+        m = re.match(r'Ability\.(\w+)\.(\d+)\.(About|FinePrint)', key_name)
+        if not m or key_id not in id_to_text:
+            continue
+        ab_name, level, field = m.group(1), int(m.group(2)), m.group(3)
+        text = clean_desc(id_to_text[key_id])
+        if field == 'About':
+            ability_descs.setdefault(ab_name, {})[level] = text
+
+    # Spell descriptions: Spell.X.About
+    spell_descs = {}
+    for key_name, key_id in key_name_to_id.items():
+        m = re.match(r'Spell\.(\w+)\.About', key_name)
+        if m and key_id in id_to_text:
+            spell_descs[m.group(1)] = clean_desc(id_to_text[key_id])
+
+    log(f"  Ability descriptions: {len(ability_descs)}, Spell descriptions: {len(spell_descs)}")
+    return ability_descs, spell_descs
 
 
 def resolve_enums(data, lookups, field_mappings):
@@ -360,7 +460,40 @@ def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, offsets=None):
             abilityEnums: rList(r32(p + 24)),
         }}));
 
-        return {{pets, spells, perks}};
+        // Also dump ability triggers from AbilityConstants dictionary
+        let trigMap = {{}};
+        try {{
+            // Force abilities to be initialized
+            try {{ table.get(26659)(0); }} catch(e) {{}}
+
+            const dictPtr = table.get(26657)(0);
+            if (dictPtr > 1000) {{
+                const entriesArr = r32(dictPtr + 8);
+                const arrLen = r32(entriesArr + 12);
+
+                for (let i = 0; i < arrLen && i < 2000; i++) {{
+                    const base = entriesArr + 16 + i * 16;
+                    if (r32(base) < 0) continue;
+                    const valPtr = r32(base + 12);
+                    if (valPtr < 1000) continue;
+                    const acEnum = r32(valPtr + 8);
+                    if (acEnum < 0 || acEnum > 1200) continue;
+                    const abList = r32(valPtr + 12);
+                    if (abList < 1000) continue;
+                    const abArr = r32(abList + 8);
+                    if (abArr < 1000) continue;
+                    const abPtr = r32(abArr + 16);
+                    if (abPtr < 1000) continue;
+                    const trigPtr = r32(abPtr + 356);
+                    if (trigPtr > 10000 && trigPtr < 200000000) {{
+                        const te = r32(trigPtr + 8);
+                        if (te >= 0 && te <= 233) trigMap[acEnum] = te;
+                    }}
+                }}
+            }}
+        }} catch(e) {{}}
+
+        return {{pets, spells, perks, trigMap}};
     }}"""
 
 
@@ -401,6 +534,23 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
 
         await page.route('**/*.wasm*', save_build_file)
         await page.route('**/*.data*', save_build_file)
+
+        # Also capture localization bundles for descriptions/trigger names
+        bundle_dir = os.path.join(work_dir, 'bundles')
+        os.makedirs(bundle_dir, exist_ok=True)
+
+        async def save_bundle(route):
+            url = route.request.url
+            response = await route.fetch()
+            if '.bundle' in url and response.status == 200:
+                fname = url.split('/')[-1].split('?')[0]
+                body = await response.body()
+                with open(os.path.join(bundle_dir, fname), 'wb') as f:
+                    f.write(body)
+                game_files.setdefault('bundles', []).append(fname)
+            await route.fulfill(response=response)
+
+        await page.route('**/*.bundle*', save_bundle)
 
         # Patch Unity loader to capture Module reference
         async def patch_loader(route):
@@ -512,8 +662,9 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
         pets = result['pets']
         spells = result['spells']
         perks = result['perks']
+        trig_map = result.get('trigMap', {})
 
-        log(f"  Pets: {len(pets)}, Spells: {len(spells)}, Perks: {len(perks)}")
+        log(f"  Pets: {len(pets)}, Spells: {len(spells)}, Perks: {len(perks)}, Triggers: {len(trig_map)}")
 
         await browser.close()
 
@@ -540,7 +691,65 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
         })
 
     # ============================================================
-    # Step 4: Save output
+    # Step 4: Parse localization for descriptions and triggers
+    # ============================================================
+    log("Parsing localization bundles...")
+    ability_descs, spell_descs = parse_localization_bundles(bundle_dir)
+
+    # Build ability name → trigger name map from WASM trigger dump
+    ab_enum_lookup = lookups.get('AbilityEnum', {})
+    trig_enum_lookup = lookups.get('TriggerEnum', {})
+    ab_to_trig = {}
+
+    for ab_enum_key, trig_enum_val in trig_map.items():
+        # JS object keys are always strings
+        ab_enum_int = int(ab_enum_key) if isinstance(ab_enum_key, str) else ab_enum_key
+        trig_enum_int = int(trig_enum_val) if isinstance(trig_enum_val, str) else trig_enum_val
+        ab_name = ab_enum_lookup.get(ab_enum_int)
+        trig_name = trig_enum_lookup.get(trig_enum_int)
+        if ab_name and trig_name:
+            ab_to_trig[ab_name] = trig_name
+
+    log(f"  Ability→trigger mappings from WASM: {len(ab_to_trig)}")
+
+    # Merge ability descriptions and triggers into pets
+    if ability_descs:
+        for pet in pets:
+            ab_enums = pet.get('abilityEnums')
+            if not ab_enums or not isinstance(ab_enums, list):
+                continue
+            ab_name = ab_enums[0] if ab_enums else None
+            if not ab_name or not isinstance(ab_name, str):
+                continue
+
+            # Descriptions from localization
+            descs = ability_descs.get(ab_name, {})
+            if descs.get(1):
+                pet['level1'] = descs[1]
+            if descs.get(2):
+                pet['level2'] = descs[2]
+            if descs.get(3):
+                pet['level3'] = descs[3]
+
+            # Trigger from WASM memory dump
+            if ab_name in ab_to_trig:
+                pet['trigger'] = ab_to_trig[ab_name]
+
+        with_desc = sum(1 for p in pets if p.get('level1'))
+        with_trig = sum(1 for p in pets if p.get('trigger'))
+        log(f"  Pets with descriptions: {with_desc}, with triggers: {with_trig}")
+
+    # Merge spell descriptions (override the WASM about field with cleaner localization text)
+    if spell_descs:
+        for spell in spells:
+            name = spell.get('name')
+            # Try internal name lookup (spells use localization name)
+            if name in spell_descs:
+                spell['about'] = spell_descs[name]
+        log(f"  Spells with localization descriptions: {sum(1 for s in spells if s.get('about'))}")
+
+    # ============================================================
+    # Step 5: Save output
     # ============================================================
     os.makedirs(output_dir, exist_ok=True)
 
@@ -550,7 +759,7 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
             json.dump(data, f, indent=2, ensure_ascii=False)
 
     log(f"Done! Saved to {output_dir}/")
-    log(f"  Pets: {len(pets)} ({sum(1 for p in pets if p['rollable'])} rollable)")
+    log(f"  Pets: {len(pets)} ({sum(1 for p in pets if p['rollable'])} rollable, {sum(1 for p in pets if p.get('trigger'))} with triggers)")
     log(f"  Spells: {len(spells)} ({sum(1 for s in spells if s['rollable'])} rollable)")
     log(f"  Perks: {len(perks)}")
 
