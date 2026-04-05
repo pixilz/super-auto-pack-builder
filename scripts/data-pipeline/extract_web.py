@@ -44,6 +44,7 @@ FUNCTION_NAMES = {
     'GetReleasedMinions': 'Spacewood.Core.Enums.MinionConstants$$GetReleasedMinions',
     'GetReleasedSpells': 'Spacewood.Core.Enums.SpellConstants$$GetReleasedSpells',
     'GetReleasedPerks': 'Spacewood.Core.Enums.PerkConstants$$GetReleasedPerks',
+    'GetAbilities': 'Spacewood.Core.Models.Abilities.AbilityConstants$$GetAbilities',
 }
 
 # Enum names we need to resolve
@@ -88,8 +89,33 @@ function clean(s) { return s ? s.replace(/\\{\\w*Icon\\}\\s*/g, '').trim() : nul
 """
 
 
+import hashlib
+
+
 def log(msg):
     print(f"[WEB-EXTRACT] {msg}", file=sys.stderr)
+
+
+def compute_version_hash(wasm_path):
+    """Compute SHA256 hash of WASM binary as the game version fingerprint."""
+    h = hashlib.sha256()
+    with open(wasm_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()[:16]
+
+
+def check_version_changed(wasm_path, version_file):
+    """Check if the game has updated since last extraction.
+
+    Returns (changed: bool, new_hash: str, old_hash: str|None).
+    """
+    new_hash = compute_version_hash(wasm_path)
+    old_hash = None
+    if os.path.exists(version_file):
+        with open(version_file) as f:
+            old_hash = f.read().strip()
+    return (new_hash != old_hash, new_hash, old_hash)
 
 
 def extract_metadata_from_data(data_bytes):
@@ -385,6 +411,30 @@ def build_offset_discovery_js(func_idx_pets):
         const nameCheck = known['Ant'] ? rStr(r32(r32(arr + 16) + 8)) : null;
         offsets['nameVerified'] = nameCheck === known['Ant'] ? true : nameCheck;
 
+        // Discover AbilityEnums offset: find a List<int> field where Ant has [75] (AntAbility)
+        // AntAbility=75, BeaverAbility=43, CricketAbility=17
+        const abilityExpect = {{'Ant': 75, 'Beaver': 43, 'Cricket': 17}};
+        for (let off = 150; off <= 260; off += 4) {{
+            let matches = 0;
+            for (const [name, expectedEnum] of Object.entries(abilityExpect)) {{
+                if (!known[name]) continue;
+                const petPtr = r32(arr + 16 + 0); // need actual pet ptr
+                // Re-find the pet
+                for (let pi = 0; pi < Math.min(count, 200); pi++) {{
+                    const pp = r32(arr + 16 + pi * 4);
+                    if (rStr(r32(pp + 8)) !== name) continue;
+                    const listPtr = r32(pp + off);
+                    const list = rList(listPtr);
+                    if (list && list.includes(expectedEnum)) matches++;
+                    break;
+                }}
+            }}
+            if (matches >= 2) {{
+                offsets['abilityEnums'] = off;
+                break;
+            }}
+        }}
+
         return {{offsets, petCount: count, knownPets: Object.keys(known)}};
     }}"""
 
@@ -400,7 +450,7 @@ DEFAULT_OFFSETS = {
 }
 
 
-def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, offsets=None):
+def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, func_idx_abilities=0, offsets=None):
     """Build a single JS evaluation that dumps all three data types at once."""
     o = offsets or DEFAULT_OFFSETS
     return f"""() => {{
@@ -463,27 +513,63 @@ def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, offsets=None):
         // Dump ability triggers from AbilityConstants
         // GetAbilities() returns a List<AbilityCollection>, not a Dictionary
         let trigMap = {{}};
+        let trigOffset = -1;
         try {{
-            const listPtr = table.get(26657)(0);
-            if (listPtr > 1000) {{
-                const itemsArr = r32(listPtr + 8);
-                const size = r32(listPtr + 12);
+            const getAbIdx = {func_idx_abilities};
+            if (getAbIdx > 0) {{
+                const listPtr = table.get(getAbIdx)(0);
+                if (listPtr > 1000) {{
+                    const itemsArr = r32(listPtr + 8);
+                    const size = r32(listPtr + 12);
 
-                for (let i = 0; i < size && i < 2000; i++) {{
-                    const collPtr = r32(itemsArr + 16 + i * 4);
-                    if (collPtr < 1000) continue;
-                    const acEnum = r32(collPtr + 8);
-                    if (acEnum < 0 || acEnum > 1200) continue;
-                    const abList = r32(collPtr + 12);
-                    if (abList < 1000) continue;
-                    const abArr = r32(abList + 8);
-                    if (abArr < 1000) continue;
-                    const abPtr = r32(abArr + 16);
-                    if (abPtr < 1000) continue;
-                    const trigPtr = r32(abPtr + 356);
-                    if (trigPtr > 10000 && trigPtr < 200000000) {{
-                        const te = r32(trigPtr + 8);
-                        if (te >= 0 && te <= 233) trigMap[acEnum] = te;
+                    // Auto-discover trigger offset using CricketAbility (enum=17, trigger=ThisDied=18)
+                    // Scan for the offset where a known ability's Trigger.Enum matches
+                    if (size > 0) {{
+                        for (let i = 0; i < size && trigOffset < 0; i++) {{
+                            const collPtr = r32(itemsArr + 16 + i * 4);
+                            if (collPtr < 1000) continue;
+                            const acEnum = r32(collPtr + 8);
+                            // Cricket=17→trigger 18, Mosquito=47→trigger 4, Pig=59→trigger 7
+                            const expected = {{17: 18, 47: 4, 59: 7}};
+                            if (!(acEnum in expected)) continue;
+                            const abList = r32(collPtr + 12);
+                            if (abList < 1000) continue;
+                            const abArr = r32(abList + 8);
+                            if (abArr < 1000) continue;
+                            const abPtr = r32(abArr + 16);
+                            if (abPtr < 1000) continue;
+                            for (let off = 200; off < 500; off += 4) {{
+                                const ptr = r32(abPtr + off);
+                                if (ptr > 10000 && ptr < 200000000) {{
+                                    const te = r32(ptr + 8);
+                                    if (te === expected[acEnum]) {{
+                                        trigOffset = off;
+                                        break;
+                                    }}
+                                }}
+                            }}
+                        }}
+                    }}
+
+                    // Read all triggers using discovered offset
+                    if (trigOffset > 0) {{
+                        for (let i = 0; i < size && i < 2000; i++) {{
+                            const collPtr = r32(itemsArr + 16 + i * 4);
+                            if (collPtr < 1000) continue;
+                            const acEnum = r32(collPtr + 8);
+                            if (acEnum < 0 || acEnum > 1200) continue;
+                            const abList = r32(collPtr + 12);
+                            if (abList < 1000) continue;
+                            const abArr = r32(abList + 8);
+                            if (abArr < 1000) continue;
+                            const abPtr = r32(abArr + 16);
+                            if (abPtr < 1000) continue;
+                            const trigPtr = r32(abPtr + trigOffset);
+                            if (trigPtr > 10000 && trigPtr < 200000000) {{
+                                const te = r32(trigPtr + 8);
+                                if (te >= 0 && te <= 300) trigMap[acEnum] = te;
+                            }}
+                        }}
                     }}
                 }}
             }}
@@ -493,9 +579,11 @@ def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, offsets=None):
     }}"""
 
 
-async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
-    """Full self-contained extraction pipeline."""
+async def extract_all(output_dir, timeout=90, version_file=None, check_only=False):
+    """Full self-contained extraction pipeline.
 
+    Returns True on success, False on failure or no-update.
+    """
     work_dir = tempfile.mkdtemp(prefix='sap-extract-')
     log(f"Working directory: {work_dir}")
 
@@ -569,6 +657,25 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
         if canvas:
             await canvas.click()
 
+        # ============================================================
+        # Version check — skip extraction if game hasn't updated
+        # ============================================================
+        if version_file and 'wasm' in game_files:
+            changed, new_hash, old_hash = check_version_changed(game_files['wasm'], version_file)
+            log(f"  Game version: {new_hash}" + (f" (was {old_hash})" if old_hash else " (first run)"))
+            if not changed:
+                log("Game has not updated — skipping extraction.")
+                await browser.close()
+                import shutil
+                shutil.rmtree(work_dir, ignore_errors=True)
+                return True  # success, just nothing to do
+            if check_only:
+                log("Game has updated! Run without --check-only to extract.")
+                await browser.close()
+                import shutil
+                shutil.rmtree(work_dir, ignore_errors=True)
+                return True
+
         log(f"Waiting {timeout}s for game initialization...")
         await page.wait_for_timeout(timeout * 1000)
 
@@ -577,7 +684,7 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
         if not check.get('ok'):
             log("ERROR: WASM module not loaded. Try increasing --timeout.")
             await browser.close()
-            return
+            return False
 
         # ============================================================
         # Step 1: Extract metadata and run Il2CppDumper
@@ -612,14 +719,11 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
                     lookups = parse_enum_lookups(dump_cs)
                     log(f"  Enum lookups: {', '.join(f'{k}({len(v)})' for k, v in lookups.items())}")
 
-        # Fallback function indices
         if not func_indices:
-            log("WARNING: Using fallback function indices (may break on game update)")
-            func_indices = {
-                'GetReleasedMinions': 11688,
-                'GetReleasedSpells': 30368,
-                'GetReleasedPerks': 30225,
-            }
+            log("ERROR: Il2CppDumper failed — cannot resolve function indices.")
+            log("  This is required for reliable extraction. Check dotnet installation.")
+            await browser.close()
+            return False
 
         # ============================================================
         # Step 2: Verify/discover field offsets
@@ -631,7 +735,7 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
         if 'error' not in discovery:
             discovered = discovery.get('offsets', {})
             # Update offsets if discovery found different values
-            offset_map = {'attack': 'Attack', 'health': 'Health', 'tier': 'Tier', 'enum': 'Enum'}
+            offset_map = {'attack': 'Attack', 'health': 'Health', 'tier': 'Tier', 'enum': 'Enum', 'abilityEnums': 'AbilityEnums'}
             changed = False
             for disc_key, offset_key in offset_map.items():
                 if disc_key in discovered and discovered[disc_key] != offsets[offset_key]:
@@ -651,6 +755,7 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
             func_indices['GetReleasedMinions'],
             func_indices['GetReleasedSpells'],
             func_indices['GetReleasedPerks'],
+            func_indices.get('GetAbilities', 0),
             offsets,
         )
         result = await page.evaluate(dump_js)
@@ -759,18 +864,31 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
     log(f"  Spells: {len(spells)} ({sum(1 for s in spells if s['rollable'])} rollable)")
     log(f"  Perks: {len(perks)}")
 
+    # Save version hash for future update detection
+    if version_file and 'wasm' in game_files:
+        _, new_hash, _ = check_version_changed(game_files['wasm'], version_file)
+        os.makedirs(os.path.dirname(version_file) or '.', exist_ok=True)
+        with open(version_file, 'w') as f:
+            f.write(new_hash)
+        log(f"  Version hash saved: {new_hash}")
+
     # Cleanup work dir
     import shutil
     shutil.rmtree(work_dir, ignore_errors=True)
+
+    return True
 
 
 def main():
     parser = argparse.ArgumentParser(description="Extract SAP game data from WebGL build (fully self-contained)")
     parser.add_argument("--output-dir", default="tmp/webgl-extract", help="Output directory")
     parser.add_argument("--timeout", type=int, default=90, help="Seconds to wait for game init (default: 90)")
+    parser.add_argument("--version-file", default=None, help="File to store/check WASM hash for update detection")
+    parser.add_argument("--check-only", action="store_true", help="Only check for updates, don't extract")
     args = parser.parse_args()
 
-    asyncio.run(extract_all(args.output_dir, args.timeout))
+    success = asyncio.run(extract_all(args.output_dir, args.timeout, version_file=args.version_file, check_only=args.check_only))
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
