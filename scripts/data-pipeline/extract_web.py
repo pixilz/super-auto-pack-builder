@@ -25,6 +25,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+import urllib.request
+import zipfile
 from pathlib import Path
 
 # Try importing playwright — fail with helpful message if missing
@@ -108,24 +110,54 @@ def extract_metadata_from_data(data_bytes):
     return data_bytes[start:start + max_end]
 
 
+IL2CPP_DUMPER_URL = "https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip"
+IL2CPP_DUMPER_CACHE = Path(__file__).parent.parent.parent / "tmp" / "il2cppdumper-tool"
+
+
+def ensure_il2cppdumper():
+    """Download Il2CppDumper if not present. Returns path to DLL or None."""
+    dll_path = IL2CPP_DUMPER_CACHE / "Il2CppDumper.dll"
+    if dll_path.exists():
+        return str(dll_path)
+
+    # Check other known locations
+    for loc in [
+        Path(__file__).parent.parent.parent / "tmp" / "webgl" / "il2cppdumper-tool" / "Il2CppDumper.dll",
+        Path(__file__).parent.parent.parent / "tools" / "Il2CppDumper.dll",
+    ]:
+        if loc.exists():
+            return str(loc)
+
+    # Check dotnet is available
+    try:
+        subprocess.run(["dotnet", "--version"], capture_output=True, timeout=5)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        log("WARNING: dotnet not found — cannot run Il2CppDumper")
+        return None
+
+    # Download
+    log(f"Downloading Il2CppDumper...")
+    os.makedirs(IL2CPP_DUMPER_CACHE, exist_ok=True)
+    zip_path = IL2CPP_DUMPER_CACHE / "Il2CppDumper.zip"
+
+    try:
+        urllib.request.urlretrieve(IL2CPP_DUMPER_URL, zip_path)
+        with zipfile.ZipFile(zip_path) as zf:
+            zf.extractall(IL2CPP_DUMPER_CACHE)
+        zip_path.unlink(missing_ok=True)
+        log(f"  Installed to {IL2CPP_DUMPER_CACHE}")
+    except Exception as e:
+        log(f"WARNING: Failed to download Il2CppDumper: {e}")
+        return None
+
+    return str(dll_path) if dll_path.exists() else None
+
+
 def run_il2cppdumper(wasm_path, metadata_path, output_dir):
     """Run Il2CppDumper to produce script.json and dump.cs."""
-    # Find Il2CppDumper
-    script_dir = Path(__file__).parent
-    repo_root = script_dir.parent.parent
-    dumper_locations = [
-        repo_root / "tmp" / "webgl" / "il2cppdumper-tool" / "Il2CppDumper.dll",
-        repo_root / "tools" / "Il2CppDumper.dll",
-    ]
-
-    dumper = None
-    for loc in dumper_locations:
-        if loc.exists():
-            dumper = str(loc)
-            break
-
+    dumper = ensure_il2cppdumper()
     if not dumper:
-        log("WARNING: Il2CppDumper not found — using fallback function indices")
+        log("WARNING: Il2CppDumper not available — using fallback function indices")
         return None, None
 
     os.makedirs(output_dir, exist_ok=True)
@@ -179,8 +211,98 @@ def resolve_enums(data, lookups, field_mappings):
                 item[field] = [lookup.get(v, v) for v in item[field]]
 
 
-def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks):
+def build_offset_discovery_js(func_idx_pets):
+    """Build JS that discovers field offsets by checking known pet values.
+
+    Reads the first 250 bytes of several pet objects and finds offsets where
+    known values (Ant: attack=2, health=2, enum=0, tier=1) consistently appear.
+    """
+    return f"""() => {{
+        const mod = window.__mod;
+        const mem = mod.HEAPU8;
+        const table = mod.asm.__indirect_function_table;
+        {JS_HELPERS}
+
+        const fn = table.get({func_idx_pets});
+        const listPtr = fn();
+        const arr = r32(listPtr + 8);
+        const count = r32(listPtr + 12);
+        if (count < 10) return {{error: 'too few pets', count}};
+
+        // Read first 50 pets, find ones with known stats
+        const known = {{}};
+        for (let i = 0; i < Math.min(count, 200); i++) {{
+            const p = r32(arr + 16 + i * 4);
+            if (!p) continue;
+            // Try reading name at offset +8 (should be stable)
+            const name = rStr(r32(p + 8));
+            if (['Ant','Beaver','Cricket','Fish','Horse','Pig','Dog','Otter'].includes(name)) {{
+                const dump = [];
+                for (let off = 0; off < 250; off += 4) dump.push(r32(p + off));
+                known[name] = dump;
+            }}
+        }}
+
+        // Expected values (stable across versions)
+        const expect = {{
+            'Ant': {{attack: 2, health: 2, tier: 1, enum: 0}},
+            'Beaver': {{attack: 3, health: 2, tier: 1, enum: 3}},
+            'Cricket': {{attack: 1, health: 3, tier: 1, enum: 17}},
+            'Pig': {{attack: 4, health: 1, tier: 1, enum: 59}},
+        }};
+
+        // Find offsets where values consistently match
+        const offsets = {{}};
+        const candidates = {{'attack': {{}}, 'health': {{}}, 'tier': {{}}, 'enum': {{}}}};
+
+        for (const [name, exp] of Object.entries(expect)) {{
+            if (!known[name]) continue;
+            const dump = known[name];
+            for (let idx = 0; idx < dump.length; idx++) {{
+                const off = idx * 4;
+                for (const [field, val] of Object.entries(exp)) {{
+                    if (dump[idx] === val) {{
+                        if (!candidates[field][off]) candidates[field][off] = 0;
+                        candidates[field][off]++;
+                    }}
+                }}
+            }}
+        }}
+
+        // Pick offsets with the most matches (and > 1 match to avoid false positives)
+        for (const [field, offs] of Object.entries(candidates)) {{
+            let bestOff = -1, bestCount = 0;
+            for (const [off, cnt] of Object.entries(offs)) {{
+                // For enum, require exact match count since values are unique
+                if (cnt > bestCount) {{ bestOff = parseInt(off); bestCount = cnt; }}
+            }}
+            if (bestCount >= 2 || (field === 'enum' && bestCount >= 1)) {{
+                offsets[field] = bestOff;
+            }}
+        }}
+
+        // Also verify Name offset (+8) and Price offset (+20)
+        const nameCheck = known['Ant'] ? rStr(r32(r32(arr + 16) + 8)) : null;
+        offsets['nameVerified'] = nameCheck === known['Ant'] ? true : nameCheck;
+
+        return {{offsets, petCount: count, knownPets: Object.keys(known)}};
+    }}"""
+
+
+# Default field offsets for 32-bit WASM IL2CPP (from il2cpp.h analysis)
+DEFAULT_OFFSETS = {
+    'Name': 8, 'NameNormalized': 12, 'Tier': 16, 'Price': 20, 'About': 24,
+    'Active': 28, 'Rollable': 29,
+    'ArchetypeProducer': 64, 'ArchetypeConsumer': 68, 'ArchetypeCustom': 72,
+    'Roles': 104, 'Packs': 108,
+    'Enum': 116, 'Attack': 132, 'Health': 144,
+    'AbilityEnums': 216,
+}
+
+
+def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, offsets=None):
     """Build a single JS evaluation that dumps all three data types at once."""
+    o = offsets or DEFAULT_OFFSETS
     return f"""() => {{
         const mod = window.__mod;
         const mem = mod.HEAPU8;
@@ -201,34 +323,34 @@ def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks):
         }}
 
         const pets = dumpList({func_idx_pets}, p => ({{
-            name: rStr(r32(p + 8)),
-            enumId: r32(p + 116),
-            tier: r32(p + 16),
-            attack: r32(p + 132),
-            health: r32(p + 144),
-            price: r32(p + 20),
-            rollable: rByte(p + 29) === 1,
-            active: rByte(p + 28) === 1,
-            about: clean(rStr(r32(p + 24))),
-            archetypeProducer: rHashSet(r32(p + 64)),
-            archetypeConsumer: rHashSet(r32(p + 68)),
-            archetypeCustom: rList(r32(p + 72)),
-            roles: rList(r32(p + 104)),
-            packs: rHashSet(r32(p + 108)),
-            abilityEnums: rList(r32(p + 216)),
+            name: rStr(r32(p + {o['Name']})),
+            enumId: r32(p + {o['Enum']}),
+            tier: r32(p + {o['Tier']}),
+            attack: r32(p + {o['Attack']}),
+            health: r32(p + {o['Health']}),
+            price: r32(p + {o['Price']}),
+            rollable: rByte(p + {o['Rollable']}) === 1,
+            active: rByte(p + {o['Active']}) === 1,
+            about: clean(rStr(r32(p + {o['About']}))),
+            archetypeProducer: rHashSet(r32(p + {o['ArchetypeProducer']})),
+            archetypeConsumer: rHashSet(r32(p + {o['ArchetypeConsumer']})),
+            archetypeCustom: rList(r32(p + {o['ArchetypeCustom']})),
+            roles: rList(r32(p + {o['Roles']})),
+            packs: rHashSet(r32(p + {o['Packs']})),
+            abilityEnums: rList(r32(p + {o['AbilityEnums']})),
         }}));
 
         const spells = dumpList({func_idx_spells}, p => ({{
-            name: rStr(r32(p + 8)),
-            enumId: r32(p + 116),
-            tier: r32(p + 16),
-            price: r32(p + 20),
-            rollable: rByte(p + 29) === 1,
-            active: rByte(p + 28) === 1,
-            about: clean(rStr(r32(p + 24))),
-            archetypeProducer: rHashSet(r32(p + 64)),
-            archetypeConsumer: rHashSet(r32(p + 68)),
-            packs: rHashSet(r32(p + 108)),
+            name: rStr(r32(p + {o['Name']})),
+            enumId: r32(p + {o['Enum']}),
+            tier: r32(p + {o['Tier']}),
+            price: r32(p + {o['Price']}),
+            rollable: rByte(p + {o['Rollable']}) === 1,
+            active: rByte(p + {o['Active']}) === 1,
+            about: clean(rStr(r32(p + {o['About']}))),
+            archetypeProducer: rHashSet(r32(p + {o['ArchetypeProducer']})),
+            archetypeConsumer: rHashSet(r32(p + {o['ArchetypeConsumer']})),
+            packs: rHashSet(r32(p + {o['Packs']})),
         }}));
 
         const perks = dumpList({func_idx_perks}, p => ({{
@@ -354,13 +476,36 @@ async def extract_all(output_dir, timeout=90, il2cpp_dumper_path=None):
             }
 
         # ============================================================
-        # Step 2: Dump all game data from WASM memory
+        # Step 2: Verify/discover field offsets
+        # ============================================================
+        log("Verifying field offsets...")
+        discovery = await page.evaluate(build_offset_discovery_js(func_indices['GetReleasedMinions']))
+
+        offsets = dict(DEFAULT_OFFSETS)
+        if 'error' not in discovery:
+            discovered = discovery.get('offsets', {})
+            # Update offsets if discovery found different values
+            offset_map = {'attack': 'Attack', 'health': 'Health', 'tier': 'Tier', 'enum': 'Enum'}
+            changed = False
+            for disc_key, offset_key in offset_map.items():
+                if disc_key in discovered and discovered[disc_key] != offsets[offset_key]:
+                    log(f"  OFFSET CHANGED: {offset_key} was {offsets[offset_key]}, now {discovered[disc_key]}")
+                    offsets[offset_key] = discovered[disc_key]
+                    changed = True
+            if not changed:
+                log(f"  All offsets verified OK ({discovery['petCount']} pets, checked: {discovery['knownPets']})")
+        else:
+            log(f"  WARNING: Offset discovery failed: {discovery}")
+
+        # ============================================================
+        # Step 3: Dump all game data from WASM memory
         # ============================================================
         log("Dumping game data from WASM memory...")
         dump_js = build_dump_js(
             func_indices['GetReleasedMinions'],
             func_indices['GetReleasedSpells'],
             func_indices['GetReleasedPerks'],
+            offsets,
         )
         result = await page.evaluate(dump_js)
 
