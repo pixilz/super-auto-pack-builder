@@ -460,25 +460,21 @@ def build_dump_js(func_idx_pets, func_idx_spells, func_idx_perks, offsets=None):
             abilityEnums: rList(r32(p + 24)),
         }}));
 
-        // Also dump ability triggers from AbilityConstants dictionary
+        // Dump ability triggers from AbilityConstants
+        // GetAbilities() returns a List<AbilityCollection>, not a Dictionary
         let trigMap = {{}};
         try {{
-            // Force abilities to be initialized
-            try {{ table.get(26659)(0); }} catch(e) {{}}
+            const listPtr = table.get(26657)(0);
+            if (listPtr > 1000) {{
+                const itemsArr = r32(listPtr + 8);
+                const size = r32(listPtr + 12);
 
-            const dictPtr = table.get(26657)(0);
-            if (dictPtr > 1000) {{
-                const entriesArr = r32(dictPtr + 8);
-                const arrLen = r32(entriesArr + 12);
-
-                for (let i = 0; i < arrLen && i < 2000; i++) {{
-                    const base = entriesArr + 16 + i * 16;
-                    if (r32(base) < 0) continue;
-                    const valPtr = r32(base + 12);
-                    if (valPtr < 1000) continue;
-                    const acEnum = r32(valPtr + 8);
+                for (let i = 0; i < size && i < 2000; i++) {{
+                    const collPtr = r32(itemsArr + 16 + i * 4);
+                    if (collPtr < 1000) continue;
+                    const acEnum = r32(collPtr + 8);
                     if (acEnum < 0 || acEnum > 1200) continue;
-                    const abList = r32(valPtr + 12);
+                    const abList = r32(collPtr + 12);
                     if (abList < 1000) continue;
                     const abArr = r32(abList + 8);
                     if (abArr < 1000) continue;
