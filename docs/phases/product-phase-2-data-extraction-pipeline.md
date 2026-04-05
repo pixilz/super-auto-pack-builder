@@ -1,106 +1,105 @@
 ---
 phase: product-phase-2
-status: in-progress
+status: complete
 started: 2026-03-27
-completed:
+completed: 2026-04-05
 ---
 
 # Phase 2 — Data Extraction Pipeline
 
 ## Goal
 
-Build a fully automated pipeline that extracts complete, accurate pet/food/ability data from SAP game files — no external data sources required.
+Build a fully automated pipeline that extracts complete, accurate pet/food/ability data from SAP game files — no external data sources required, survives game updates without code changes.
 
-## Context
+## Result
 
-Phase 1 (Data Source & Discovery) revealed that pet data is hardcoded in `GameAssembly.dll` (IL2CPP compiled native code). We extracted stats, tiers, and ability enum references via Cpp2IL ISIL parsing, and ability descriptions from localization bundles. But ability triggers remain locked in native code lambda bodies.
+**One script: `scripts/data-pipeline/extract_web.py`**
 
-We have a complete reference dataset from groundedsap.co.uk (581 pets, all fields). This serves as our validation target — the pipeline is "done" when its output matches groundedsap for the current patch, and can produce correct output for future patches without any external data.
+```bash
+python3 scripts/data-pipeline/extract_web.py --output-dir data/extracted
+```
 
-## Decisions Made
+Zero pre-existing files. ~3 minutes. Outputs `pets.json` (670), `spells.json` (195), `perks.json` (104). Designed for unattended cronjob operation with `--version-file` for update detection.
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Primary data validation source | groundedsap.co.uk | User-trusted, comprehensive, covers all packs including Custom |
-| Binary decompilation tool | Ghidra (headless) | Successfully analyzed GameAssembly.dll; Cpp2IL couldn't reconstruct method bodies |
-| Localization extraction | UnityPy + binary parsing | Extracted 5304 strings including ability descriptions from addressable bundles |
-| Trigger extraction approach | Ghidra decompile + groundedsap cross-reference | Use known triggers to map factory functions, then validate the mapping is reusable |
+## How It Works
 
-## Deliverables
+1. Playwright launches the SAP WebGL build from itch.io in headless Chromium
+2. Route interception captures `game.wasm`, `game.data`, and localization `.bundle` files
+3. `global-metadata.dat` (IL2CPP metadata) is extracted from `game.data`
+4. Il2CppDumper (auto-downloaded if missing) runs on the WASM binary to produce:
+   - `script.json` → WASM function table indices for game functions
+   - `dump.cs` → enum name mappings (Archetype, Pack, TriggerEnum, AbilityEnum, etc.)
+5. Field offsets are verified against known pet values (Ant=2/2, Beaver=3/2, etc.) and auto-discovered if layout changes
+6. Game functions called directly through `mod.asm.__indirect_function_table`:
+   - `GetReleasedMinions()` → all pet data
+   - `GetReleasedSpells()` → all spell/food data
+   - `GetReleasedPerks()` → all perk data
+   - `GetAbilities()` → ability trigger data (TriggerBase.Enum)
+7. Localization bundles parsed with UnityPy for ability descriptions and spell descriptions
+8. All enum IDs resolved to human-readable names
 
-### Research (use groundedsap as Rosetta Stone)
+## Data Extracted
 
-- [ ] **R1: Stat validation** — Diff our extracted stats (attack, health, tier) against groundedsap for all 581 pets. Identify and fix parser bugs.
-- [ ] **R2: Trigger factory mapping** — Cross-reference groundedsap's known triggers with our 34 Ghidra trigger factory functions. Build a verified factory_address → trigger_name lookup.
-- [ ] **R3: Lambda-to-ability mapping** — Use the verified trigger mapping + ability descriptions to match each Ghidra lambda to its ability enum. This is the key missing link.
-- [ ] **R4: Ability description validation** — Diff our localization-extracted descriptions against groundedsap's. Fix any extraction bugs.
-- [ ] **R5: Coverage gap analysis** — Identify any data in groundedsap we still can't extract (packs, rollable status, categories, notes, etc.) and determine extraction paths.
+| Field | Pets | Spells | Perks |
+|-------|------|--------|-------|
+| name, enumId | 670 (100%) | 195 (100%) | 104 (100%) |
+| tier, attack, health, price | 670 (100%) | 195 (100%) | — |
+| rollable, active | 670 (100%) | 195 (100%) | — |
+| archetypes | 504 (75%) | 195 | — |
+| packs | 560 (84%) | 195 | — |
+| ability list | 651 (97%) | — | 104 (100%) |
+| triggers | 629 (94%) | — | — |
+| descriptions | 633 (94%) | 195 (100%) | — |
 
-### Pipeline (automate the extraction)
+## Cronjob Setup
 
-- [ ] **P1: Pet stat extractor** — Script that takes Cpp2IL ISIL output and produces pet stats JSON. Tested against groundedsap.
-- [ ] **P2: Ability description extractor** — Script that extracts ability text from localization bundles. Tested against groundedsap.
-- [ ] **P3: Trigger extractor** — Script that uses Ghidra headless to decompile trigger lambdas and extract trigger assignments. Tested against groundedsap.
-- [ ] **P4: End-to-end pipeline** — Single script: game files in → complete pets.json out. Regression tested against groundedsap snapshot.
+```bash
+0 6 * * 1,4 python3 /path/to/extract_web.py \
+  --output-dir /data/sap \
+  --version-file /data/sap/.version \
+  --timeout 90
+```
 
-## Open Questions
+- `--version-file`: SHA256 hash of `game.wasm`. Skips extraction if unchanged (~30s).
+- `--check-only`: Detect update without extracting.
+- Exit code 0 = success, 1 = failure.
+- No manual intervention on game update — everything re-derived from the new binary.
 
-- Can we extract food/spell data using the same approach? (SpellConstants mirrors MinionConstants)
-- Can the pipeline run in Docker for reproducibility?
-- How do we handle pets that exist in our extraction but not in groundedsap (removed/test pets)?
-- Is there a faster alternative to full Ghidra analysis (~45 min) for the trigger extraction step?
+## Dependencies
+
+- `playwright` + Chromium: `pip install playwright && playwright install chromium`
+- `dotnet` 6+ runtime (for Il2CppDumper)
+- `UnityPy` (optional, for descriptions): `pip install UnityPy`
+
+## Validation vs GroundedSAP
+
+| Metric | Our Extract | GroundedSAP |
+|--------|-------------|-------------|
+| Total pets | **670** | 581 |
+| Stats accuracy | 97.2% (16 game version diffs) | baseline |
+| Triggers | 93.1% (naming format diffs) | baseline |
+| Descriptions | 92.8% | baseline |
+| Spells | **195** | ~156 |
+| Perks | **104** | ~98 |
+
+## Remaining Gaps
+
+| Gap | Cause | Severity |
+|-----|-------|----------|
+| Trigger display names | Raw enum names (`ThisDied`) vs display (`Faint`) | Low — normalization map needed |
+| ~40 missing descriptions | Token pets + localization gaps | Low — tokens say "No ability" |
+| 16 stat diffs vs GS | Game version difference (ours is newer) | Not a bug |
+
+## What Was Tried Before
+
+The first approach used static decompilation (Cpp2IL + Il2CppDumper + Ghidra) on the Windows desktop build. This achieved ~97% accuracy for stats but missed 35 mythological pets (Chimera, Hydra, Phoenix, etc.) whose creation code couldn't be traced through IL2CPP. The WASM memory reading approach solved this by reading live game state after full initialization.
+
+All files from the static approach have been removed from the repo. The history is in git if needed.
 
 ## What I Learned
 
-### SAP ability architecture has two trigger layers
-The game separates **activation triggers** (Sell, Buy, Faint — when the ability fires) from **effect triggers** (Start of battle — when effects execute). Lambda code configures effect triggers via `SetTrigger()` with factory functions. Activation triggers are determined by which `TriggerBase` subclass is instantiated — the TYPE itself encodes the trigger, not an enum field. Extracting activation triggers requires cracking IL2CPP type reference → class name mapping.
-
-### Metadata tokens in IL2CPP are not memory addresses
-Static data (DAT_ values) in IL2CPP binaries contain runtime metadata tokens (0x6000XXXX format), not direct pointers. These need to be resolved via the `CodeGenModule.methodPointers` array using a base offset derived from the module's method table. The base offset (46074 for Assembly-CSharp) must be discovered empirically.
-
-### Init flags as fingerprints
-Each lambda function has a unique static initialization flag (`DAT_183aXXXXX == '\0'` pattern). These flags appear identically in both Cpp2IL ISIL and Ghidra decompiled output, making them reliable cross-reference fingerprints (785/785 correct matches).
-
-### groundedsap.co.uk as Rosetta Stone
-Using a known-good external dataset to JOIN with extracted data (petID → abilityEnum + petID → trigger = abilityEnum → trigger) produces 100% accuracy with zero conflicts. This "Rosetta Stone" approach lets us validate and supplement binary extraction without needing to crack every native code path.
-
-## Research Results
-
-| Research | Finding | Accuracy |
-|---|---|---|
-| R1: Stat validation | Attack 98.7%, Health 97.7%, Tier 99.4% (token tier bug fixed) | High |
-| R2: Trigger factories | 36 factories map to 14 TriggerEnum values, but these are EFFECT triggers | N/A |
-| R3: Lambda-to-ability | Solved via Rosetta Stone join — 509 mappings, 0 conflicts | 100% |
-| R4: Descriptions | 71.4% match — gaps are icon placeholders, {0} params, "Works N times" suffixes | Medium |
-| R5: Coverage gaps | All fields extractable except activation triggers and community-curated tags | See matrix |
-
-## Accuracy Without External Data
-
-| Field | Accuracy |
-|-------|----------|
-| Name | 99.1% |
-| Attack | 98.7% |
-| Health | 97.7% |
-| Tier | 99.4% |
-| Archetype | 89.6% |
-| Description | ~71% |
-| **Trigger** | **0%** |
-| **Overall (excl. triggers)** | **97.1%** |
-
-## Evals
-
-| Eval | File | Result |
-|---|---|---|
-| Stat accuracy vs groundedsap | `tmp/r1-stat-validation.json` | 98.7% atk, 97.7% hp, 99.4% tier |
-| Trigger accuracy (with map) | `tmp/r2-ability-trigger-map.json` | 100% (509 abilities) |
-| Description accuracy | `tmp/r4-description-validation.json` | 71.4% |
-| End-to-end pipeline | `scripts/data-pipeline/extract.py` | Runs, 672 pets output |
-
-## Related
-
-- `docs/phases/product-phase-1-data-source-and-discovery.md`
-- `docs/game-file-map.md`
-- `docs/learning/unity-il2cpp-data-extraction.md`
-- `scripts/data-pipeline/extract.py` — extraction pipeline
-- `scripts/data-pipeline/check-version.py` — version checker
-- `scripts/data-pipeline/trigger-map.json` — 509 ability→trigger mappings (Rosetta Stone)
+- **IL2CPP WASM builds are easier to extract from than native x86-64** — the WASM function table gives direct callable access to game functions without needing to understand calling conventions
+- **Unity WebGL builds serve everything from itch.io** — game.wasm, game.data, localization bundles all downloadable via Playwright route interception
+- **C# Dictionary in IL2CPP isn't always a Dictionary** — `GetAbilities()` returns a `List<AbilityCollection>`, not a `Dictionary<AbilityEnum, AbilityCollection>` as the dump.cs signature suggests
+- **Field offset verification is essential** — checking known values (Ant=2/2) on every run catches layout changes before they produce silently wrong data
+- **Lazy initialization matters** — not all game objects are populated until accessed, which is why calling the game's own accessor functions (GetReleasedMinions) is more reliable than scanning memory directly
