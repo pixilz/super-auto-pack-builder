@@ -36,7 +36,27 @@ Takes ~3 minutes. Outputs `pets.json`, `spells.json`, `perks.json`.
 
 **Dependencies:** `playwright` (pip) + Chromium, `dotnet` 6+ runtime, `UnityPy` (pip, optional for descriptions)
 
-**Survives game updates automatically.** Function indices resolved from fresh Il2CppDumper run. Field offsets self-verified against known pet values on each run. Il2CppDumper auto-downloaded from GitHub if missing.
+**Survives game updates automatically.** Function indices resolved from fresh Il2CppDumper run. Field offsets (including trigger offset and AbilityEnums offset) self-discovered against known pet values on each run. Il2CppDumper auto-downloaded from GitHub if missing. No fallback indices — fails loud if Il2CppDumper fails.
+
+### Cronjob / server operation
+
+Designed for unattended twice-weekly runs:
+
+```bash
+# Crontab: run Mon+Thu at 6am, skip if no game update
+0 6 * * 1,4 python3 /path/to/extract_web.py \
+  --output-dir /data/sap \
+  --version-file /data/sap/.version \
+  --timeout 90
+```
+
+**Update detection:** Hashes `game.wasm` (SHA256), compares to `--version-file`. If unchanged, skips extraction (~30s for download check only). If changed, runs full extraction (~3min) and saves new hash.
+
+**No manual intervention needed on game update.** All function indices, field offsets, enum names, and trigger offsets are re-derived from the new game binary each time.
+
+**`--check-only` flag:** Detects whether game updated without running extraction.
+
+**Exit codes:** 0 = success (or no update needed), 1 = failure.
 
 ### Data extracted per item
 
