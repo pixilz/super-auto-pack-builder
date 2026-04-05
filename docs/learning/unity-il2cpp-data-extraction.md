@@ -1,4 +1,6 @@
-# Learning Note: Extracting Data from a Unity IL2CPP Game
+# Learning Note: Extracting Data from a Unity IL2CPP Game (Static Approach)
+
+> **Note:** This documents the original static decompilation approach (Cpp2IL, Ghidra, ISIL parsing). It was superseded by the WASM live extraction approach — see `docs/learning/wasm-live-game-extraction.md`. This doc is kept as a learning record.
 
 > How we reverse-engineered Super Auto Pets to find where the game data lives and how to extract it.
 
