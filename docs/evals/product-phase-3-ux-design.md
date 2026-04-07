@@ -8,7 +8,7 @@ last-run: never
 
 ## What This Eval Covers
 
-The UX design decisions for the Super Auto Pets pack builder: interaction model, API shape, data constraints, and open questions. Checks that the spec is internally consistent, complete, and does not contradict itself.
+The UX design decisions for the Super Auto Pets pack builder: interaction model, lobby system, publish model, API shape, data constraints, and internal consistency. Checks that the spec is complete enough for downstream phases to build from without ambiguity.
 
 ## Why This Eval Exists
 
@@ -26,28 +26,40 @@ Read `docs/phases/product-phase-3-ux-design.md` in full and verify each check be
 
 | # | Check | Expected |
 |---|---|---|
-| 1 | Frontmatter phase number matches filename | Phase is `product-3` in frontmatter and doc is `product-phase-3-ux-design.md` |
+| 1 | Frontmatter phase number matches filename | `phase: product-3` in frontmatter; file is `product-phase-3-ux-design.md` |
 | 2 | Decisions table has no empty cells | All rows have exactly 3 cells (Decision, Choice, Rationale) |
-| 3 | "Key Architectural Signals" table: tier signal is clarified | Row says "Pack summary shows all 6 tiers simultaneously; tier tabs filter the picker panel only" — not "no tier selection UI" |
-| 4 | Open question #1 removed | "What happens when two users select the same pet slot simultaneously?" is NOT in Open Questions (answered inline as "last write wins") |
-| 5 | Pack lifecycle is in Open Questions | "What is the 'pack' lifecycle?" is present and flagged as downstream-blocking |
-| 6 | v1 scope: perks excluded | Decisions table has "Pets + food only; perks excluded" |
-| 7 | API shape documented | GET /api/packs/:id, GET /api/pets, GET /api/foods, WS /ws/pack/:id all present |
-| 8 | 10 pets + 3 food per tier is marked verified | Key Architectural Signals table has "verified by user" annotation |
-| 9 | No duplicate "Real-Time Collaboration" sections | Exactly one instance of the heading |
-| 10 | ASCII diagram uses 6 tiers | Not 7 |
-| 11 | Empty state described | Fresh pack has all 6 tiers visible with "0/10 pets", "0/3 food" |
-| 12 | Home screen / pack list called out as out of scope | Section states packs are only accessible via share URL, no pack list |
-| 13 | PUT /api/packs/:id note flags it as placeholder | Dev Phase 2 note added warning that WS patch ops replace full-document PUTs |
-| 14 | Live history feed described | Section covers desktop sidebar, mobile slide-out, entry format, max 50 entries |
-| 15 | Lobby system described | Home screen with create/join, lobby card shows name/creator/people/time, auto-expiry 1hr |
-| 16 | URL share coexists with lobby | "Share URL instead" link present at bottom of lobby screen |
-| 17 | Username IS display name | User account section states username = display name, no separate display name field |
-| 18 | Lobby recovery mechanism | Returning user with localStorage pack state offered to recreate lobby with their saved pack |
+| 3 | Slot counts marked as human-verified | Key Architectural Signals row says "human verified against in-game pack builder and native export format" |
+| 4 | Conflict resolution is first-come first-served | Real-Time Collaboration section says server processes actions in order; rejected actions show error toast only to acting user |
+| 5 | Rejected actions NOT in history feed | Spec explicitly states rejected actions do not appear in the live history feed |
+| 6 | Lobby slug = pack ID | Decisions table has "Lobby slug = pack ID — One ID serves as both lobby identifier and pack DB record" |
+| 7 | Private lobby defined | Decisions table and Lobby System section describe private lobbies as non-listed lobbies using the same slug model |
+| 8 | Publish model described | Publish Flow section covers freeze, collaborator listing, public URL, fork |
+| 9 | Fork described | Publish Flow section covers fork creating a new draft; fork available on published pack page |
+| 10 | Save to my account described | Lobby System section covers upsert behaviour — first press creates, subsequent presses update |
+| 11 | Collaborators listed on published pack | Decisions table and Publish Flow section state collaborators are captured at publish time |
+| 12 | Max collaborators stated | Lobby System section states 8 max; full lobby shows error message |
+| 13 | Mascot pet described | Decisions table, lobby card wireframe, and header wireframe all reference mascot pet |
+| 14 | Import/Export section present | Section documents SAP native JSON format: Title, Minion, Minions (60 enumIds), Spells (18 enumIds) |
+| 15 | Picker pool defined | Decisions table states "all rollable pets from all available packs" |
+| 16 | Pet detail sheet described | Section covers image, stats, stacked ability levels, related perks, related toys, Add/Remove button |
+| 17 | Perk cross-referencing flagged as pipeline dependency | Detail sheet section notes perk descriptions require a future pipeline phase |
+| 18 | Error states table present | Section covers tier full, WebSocket disconnected, server rejection, lobby not found, auth required |
+| 19 | Unauthenticated landing state described | Section states unauthenticated users see a landing/login page; cannot access lobby browser |
+| 20 | Leave lobby behaviour defined | Lobby System section states closing the tab disconnects; no explicit leave button |
+| 21 | Active lobbies defined | Lobby System section defines "active" as lobbies with at least one connection in the last hour |
+| 22 | Lobby expiry clears all state | Lobby auto-expiry section states lobby and all its state are deleted after 1 hour of zero connections |
+| 23 | No localStorage references | localStorage is not mentioned as a persistence mechanism anywhere in the doc |
+| 24 | API shape includes POST endpoints | POST /api/lobbies and POST /api/packs both present |
+| 25 | API shape includes GET /api/perks | Endpoint present; rollable filter noted on GET /api/foods |
+| 26 | History feed is scrollable | Feed section states feed is scrollable within its window |
+| 27 | History feed uses color not position | Feed section states each user's entries shown in their assigned color; no left/right split |
+| 28 | Upvote/downvote in v1 scope | Decisions table has "Upvote / downvote — In scope for v1" |
+| 29 | Comments deferred to v2 | Decisions table and Phase 4 Directive both say comments are v2 |
+| 30 | ASCII diagrams use 6 tiers | Neither diagram references Tier 7 |
 
 ## Pass Criteria
 
-All 18 checks must pass. Any failure means the eval fails and the phase doc must be corrected before the phase is considered complete.
+All 30 checks must pass. Any failure means the eval fails and the phase doc must be corrected before the phase is considered complete.
 
 ## When to Re-run
 
@@ -56,4 +68,6 @@ All 18 checks must pass. Any failure means the eval fails and the phase doc must
 
 ## Notes
 
-- Pack lifecycle is the single biggest open question. It is downstream-blocking for Phase 5 (DB) and Phase 6 (Hosting). Phase 4 must resolve it or explicitly defer it.
+- Perk cross-referencing and perk descriptions are explicitly flagged as a dependency on a future pipeline phase. This is a known gap, not an eval failure.
+- WebSocket message format is intentionally deferred to Dev Phase 2 (API Layer). Not a failure.
+- Auth method is intentionally deferred to Phase 5 (DB decisions). Not a failure.
