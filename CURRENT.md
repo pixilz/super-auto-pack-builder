@@ -4,9 +4,20 @@
 
 ## Active Phase
 
-None — ready for next phase. See `project.md` for the phase roadmap.
+**Product Phase 3 — UX Design** (pack builder focus, mobile-first)
 
-Next up is likely **Product Phase 2 — UX Design** (wireframes, mobile-first decisions).
+Full spec: `docs/phases/product-phase-3-ux-design.md`
+
+**Key pivot this phase:** Pack builder is the product. Pet/spell/food data exists as API infrastructure backing it.
+
+## Charter Change Log
+
+| Change | Reason |
+|---|---|
+| Pack builder treated as primary product | User confirmed packs are the hook; wiki is supporting infrastructure |
+| UX spec centers the pack builder | All UX decisions now flow from pack builder interactions, not data browsing |
+| Live collaboration is first-class | User wants real-time co-editing; websockets move earlier in implementation order |
+| Perks out of scope for v1 | Only pets + food in the initial build |
 
 ## Data Extraction (completed)
 
